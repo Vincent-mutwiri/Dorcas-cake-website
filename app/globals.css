@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 20 14.3% 95.9%; /* Creamy White */
+    --foreground: 25 34.5% 22.9%; /* Rich Brown Text */
+
+    --card: 20 14.3% 95.9%;
+    --card-foreground: 25 34.5% 22.9%; 
+
+    --popover: 20 14.3% 95.9%; 
+    --popover-foreground: 25 34.5% 22.9%;
+
+    --primary: 347 100% 91.2%; /* Soft Pink */
+    --primary-foreground: 25 34.5% 22.9%; /* Brown text on pink */
+
+    --secondary: 208 100% 85.1%; /* Gentle Blue */
+    --secondary-foreground: 25 34.5% 22.9%;
+
+    --muted: 30 25% 92.2%; /* Lighter brown */
+    --muted-foreground: 24 9.8% 10%;
+
+    --accent: 30 25% 92.2%;
+    --accent-foreground: 24 9.8% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+
+    --border: 30 20% 85.1%;
+    --input: 30 20% 85.1%;
+    --ring: 347 100% 91.2%;
+
+    --radius: 0.5rem;
+
+    /* Additional theme variables for consistency */
+    --sidebar: 20 14.3% 95.9%;
+    --sidebar-foreground: 25 34.5% 22.9%;
+    --sidebar-primary: 347 100% 91.2%;
+    --sidebar-primary-foreground: 25 34.5% 22.9%;
+    --sidebar-accent: 30 25% 92.2%;
+    --sidebar-accent-foreground: 24 9.8% 10%;
+    --sidebar-border: 30 20% 85.1%;
+    --sidebar-ring: 347 100% 91.2%;
+  }
+
+  .dark {
+    --background: 25 34.5% 22.9%;
+    --foreground: 20 14.3% 95.9%;
+    
+    --card: 25 34.5% 22.9%;
+    --card-foreground: 20 14.3% 95.9%;
+    
+    --popover: 25 34.5% 22.9%;
+    --popover-foreground: 20 14.3% 95.9%;
+    
+    --primary: 347 100% 91.2%;
+    --primary-foreground: 25 34.5% 22.9%;
+    
+    --secondary: 208 100% 85.1%;
+    --secondary-foreground: 25 34.5% 22.9%;
+    
+    --muted: 30 25% 22.2%;
+    --muted-foreground: 20 14.3% 95.9%;
+    
+    --accent: 30 25% 22.2%;
+    --accent-foreground: 20 14.3% 95.9%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 25 34.5% 22.9%;
+    
+    --border: 30 20% 25.1%;
+    --input: 30 20% 25.1%;
+    --ring: 347 100% 91.2%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }
