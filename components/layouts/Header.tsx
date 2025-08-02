@@ -1,9 +1,25 @@
 // components/layouts/Header.tsx
+'use client';
+
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, User, CakeSlice } from 'lucide-react';
+import { User, CakeSlice } from 'lucide-react';
+
+// Dynamically import the CartButton with SSR disabled to avoid hydration issues
+const CartButton = dynamic(() => import('@/components/layouts/CartButton'), {
+  ssr: false,
+  loading: () => (
+    <Link href="/cart" className="relative">
+      <Button variant="ghost" size="icon">
+        <span className="sr-only">Shopping Cart</span>
+      </Button>
+    </Link>
+  ),
+});
 
 const Header = () => {
+
   return (
     <header className="bg-background/80 sticky top-0 z-50 w-full border-b backdrop-blur-sm">
       <div className="container flex h-16 items-center">
@@ -24,11 +40,8 @@ const Header = () => {
         </nav>
 
         {/* Action Icons */}
-        <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon">
-            <ShoppingCart className="h-5 w-5" />
-            <span className="sr-only">Shopping Cart</span>
-          </Button>
+        <div className="flex items-center space-x-4">
+          <CartButton />
           <Button variant="ghost" size="icon">
             <User className="h-5 w-5" />
             <span className="sr-only">User Account</span>

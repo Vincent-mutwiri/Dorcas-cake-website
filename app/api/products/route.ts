@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     // Populate the 'category' field to get the category name instead of just the ID
-    const products = await ProductModel.find({}).populate('category', 'name');
+    const products = await ProductModel.find({}).populate('category', 'name slug');
     return NextResponse.json(products, { status: 200 });
   } catch (error) {
     console.error('GET_PRODUCTS_ERROR', error);

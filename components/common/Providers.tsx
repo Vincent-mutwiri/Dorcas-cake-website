@@ -4,11 +4,16 @@
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
 import { SessionProvider } from 'next-auth/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <Provider store={store}>{children}</Provider>
-    </SessionProvider>
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider>
+        <Provider store={store}>{children}</Provider>
+      </SessionProvider>
+    </QueryClientProvider>
   );
 }

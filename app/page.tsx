@@ -4,13 +4,14 @@
 import Link from 'next/link';
 import { useGetProductsQuery } from '@/store/services/api';
 import ProductCard from '@/components/product/ProductCard';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { Button } from '@/components/ui/button';
+import { ProductDocument } from '@/types/api';
+import { UIProduct, toUIProduct } from '@/types/product';
 
 export default function HomePage() {
   const { data: products, isLoading, error } = useGetProductsQuery();
 
-  const featuredProducts = products?.filter((p) => p.isFeatured).slice(0, 3);
+  const featuredProducts = (products as ProductDocument[])?.filter((p) => p.isFeatured).slice(0, 3);
 
   return (
     <>
@@ -36,8 +37,8 @@ export default function HomePage() {
             Our Featured Cakes
           </h2>
           {isLoading ? (
-            <div className="flex justify-center">
-              <LoadingSpinner />
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : error ? (
             <p className="text-center text-destructive">
@@ -45,8 +46,8 @@ export default function HomePage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {featuredProducts?.map((product) => (
-                <ProductCard key={product._id?.toString()} product={product} />
+              {featuredProducts?.map(product => toUIProduct(product)).map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           )}

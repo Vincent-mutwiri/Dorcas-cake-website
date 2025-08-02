@@ -1,7 +1,7 @@
 // components/product/ProductCard.tsx
 import Link from 'next/link';
 import Image from 'next/image';
-import { IProduct } from '@/models/ProductModel';
+import { UIProduct } from '@/types/product';
 import {
   Card,
   CardContent,
@@ -11,12 +11,36 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '@/store/slices/cartSlice';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProductCardProps {
-  product: IProduct;
+  product: UIProduct;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+
+  const addToCartHandler = () => {
+    dispatch(
+      addToCart({
+        _id: product._id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        qty: 1, // Default to 1 when adding from product card
+        countInStock: product.stock,
+        image: product.images[0] || '',
+      })
+    );
+    toast({
+      title: `${product.name} added to cart`,
+      description: `1 x ${product.name} has been added to your cart.`,
+    });
+  };
+
   return (
     <Card className="overflow-hidden">
       <Link href={`/products/${product.slug}`}>
@@ -41,9 +65,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             {product.name}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {/* We need to populate category name in the API call */}
-            {/* For now, let's assume it's an object */}
-            {(product.category as any)?.name || 'Category'}
+            {product.category.name}
           </p>
         </CardContent>
       </Link>
@@ -51,7 +73,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <p className="text-xl font-bold text-text-main">
           ${product.price.toFixed(2)}
         </p>
-        <Button>Add to Cart</Button>
+        <Button onClick={addToCartHandler}>Add to Cart</Button>
       </CardFooter>
     </Card>
   );

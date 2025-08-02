@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layouts/Header';
 import Footer from '@/components/layouts/Footer';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/components/ui/toaster';
 import { Providers } from '@/components/common/Providers'; // Import our new Providers component
 
 const inter = Inter({ subsets: ['latin'] });

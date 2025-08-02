@@ -1,11 +1,7 @@
 // utils/db.ts
 import mongoose from 'mongoose';
 
-declare global {
-  var mongoose: any; // eslint-disable-line no-var
-}
-
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
   throw new Error(
@@ -13,15 +9,14 @@ if (!MONGODB_URI) {
   );
 }
 
-let cached = global.mongoose;
+let cached = (global as any).mongoose;
 
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+  cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
 async function dbConnect() {
   if (cached.conn) {
-    console.log('🚀 Using cached database connection');
     return cached.conn;
   }
 
@@ -30,19 +25,11 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('✅ New database connection established');
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
       return mongoose;
     });
   }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
 

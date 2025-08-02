@@ -3,13 +3,20 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // Define a simplified cart item interface that doesn't extend Mongoose document
 export interface CartItem {
-  _id: string;
+  id: string;  // Changed from _id to id to match the cart page
+  _id?: string; // Keep for backward compatibility
   name: string;
+  slug: string;
   price: number;
-  image: string;
-  countInStock: number;
+  images: string[]; // Changed from image to images to match the product interface
+  image?: string; // Keep for backward compatibility
+  stock: number; // Changed from countInStock to stock to match the product interface
+  countInStock?: number; // Keep for backward compatibility
   qty: number;
-  // Add any other properties you need for the cart
+  category?: {
+    name: string;
+    slug?: string;
+  };
 }
 
 // Define the shape of the entire cart state
@@ -83,17 +90,37 @@ const cartSlice = createSlice({
       }
       updateCart(state);
     },
-    removeFromCart: (state, action: PayloadAction<string>) => {
+    removeFromCart(state, action: PayloadAction<string>) {
       const itemId = action.payload;
-      state.items = state.items.filter((x) => x._id !== itemId);
+      state.items = state.items.filter((item) => item.id !== itemId && item._id !== itemId);
       updateCart(state);
     },
-    clearCart: (state) => {
+    updateQuantity: {
+      reducer(state, action: PayloadAction<{ id: string; qty: number }>) {
+        const { id, qty } = action.payload;
+        const itemIndex = state.items.findIndex(
+          (item) => item.id === id || item._id === id
+        );
+        
+        if (itemIndex >= 0) {
+          if (qty <= 0) {
+            state.items.splice(itemIndex, 1);
+          } else {
+            state.items[itemIndex].qty = qty;
+          }
+          updateCart(state);
+        }
+      },
+      prepare(id: string, qty: number) {
+        return { payload: { id, qty } };
+      },
+    },
+    clearCart(state) {
       state.items = [];
       updateCart(state);
     },
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, updateQuantity, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;
