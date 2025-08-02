@@ -77,26 +77,17 @@ const handleQueryError = (error: unknown): { error: ApiError } => {
   };
 };
 
-// Base query with error handling
-const baseQueryWithValidation = async (args: any, api: any, extraOptions: any) => {
-  const result = await fetchBaseQuery({ 
-    baseUrl: '/api/',
-    prepareHeaders: (headers) => {
-      // Add any auth headers here if needed
-      return headers;
-    },
-  })(args, api, extraOptions);
-
-  if (result.error) {
-    return handleQueryError(result.error);
-  }
-
-  return result;
-};
+// Base query
+const baseQuery = fetchBaseQuery({ 
+  baseUrl: '/api/',
+  prepareHeaders: (headers) => {
+    return headers;
+  },
+});
 
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: baseQueryWithValidation,
+  baseQuery,
   tagTypes: ['Product', 'Category', 'Order', 'User', 'Review'],
   endpoints: (builder) => ({
     // Product Endpoints
@@ -106,17 +97,10 @@ export const api = createApi({
         'Product',
         ...result.map(({ _id }) => ({ type: 'Product' as const, id: _id })),
       ],
-      transformResponse: (response: unknown) => {
-        const products = z.array(productSchema).parse(response);
-        return products as IProduct[];
-      },
     }),
     getProductById: builder.query<IProduct, string>({
       query: (id) => `products/${id}`,
       providesTags: (result, error, id) => [{ type: 'Product', id }],
-      transformResponse: (response: unknown) => {
-        return productSchema.parse(response);
-      },
     }),
     getProductBySlug: builder.query<ProductResponse, string>({
       query: (slug) => `products/slug/${slug}`,
@@ -126,9 +110,6 @@ export const api = createApi({
           id: result?.product?._id?.toString() || slug,
         },
       ],
-      transformResponse: (response: unknown) => {
-        return productResponseSchema.parse(response);
-      },
     }),
 
     // Category Endpoints
@@ -155,6 +136,61 @@ export const api = createApi({
       providesTags: (result, error, id) => [{ type: 'Order', id }],
     }),
 
+    // Product CRUD Mutations
+    createProduct: builder.mutation<IProduct, Partial<IProduct>>({
+      query: (product) => ({
+        url: 'products',
+        method: 'POST',
+        body: product,
+      }),
+      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
+    }),
+    updateProduct: builder.mutation<IProduct, { id: string; data: Partial<IProduct> }>({
+      query: ({ id, data }) => ({
+        url: `products/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Product', id: 'LIST' },
+        { type: 'Product', id },
+      ],
+    }),
+    deleteProduct: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `products/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
+    }),
+
+    // Order Management Endpoints
+    getOrders: builder.query<IOrder[], void>({
+      query: () => 'orders',
+      providesTags: ['Order'],
+    }),
+    updateOrder: builder.mutation<IOrder, { id: string; data: { isPaid?: boolean; isDelivered?: boolean } }>({
+      query: ({ id, data }) => ({
+        url: `orders/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Order'],
+    }),
+
+    // User Management Endpoints
+    getUsers: builder.query<any[], void>({
+      query: () => 'users',
+      providesTags: ['User'],
+    }),
+    deleteUser: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User'],
+    }),
+
     // Review Endpoints
     submitReview: builder.mutation({
       query: (reviewData) => ({
@@ -175,8 +211,15 @@ export const {
   useGetProductByIdQuery,
   useGetProductBySlugQuery,
   useGetCategoriesQuery,
+  useCreateProductMutation,
+  useUpdateProductMutation,
+  useDeleteProductMutation,
   useCreateOrderMutation,
   useGetMyOrdersQuery,
   useGetOrderByIdQuery,
+  useGetOrdersQuery,
+  useUpdateOrderMutation,
+  useGetUsersQuery,
+  useDeleteUserMutation,
   useSubmitReviewMutation,
 } = api;

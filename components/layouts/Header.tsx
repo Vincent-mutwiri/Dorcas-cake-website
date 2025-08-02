@@ -27,6 +27,11 @@ const Header = () => {
           <Link href="/categories" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
             Categories
           </Link>
+          {session?.user?.isAdmin && (
+            <Link href="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Action Icons */}

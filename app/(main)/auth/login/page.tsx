@@ -22,33 +22,73 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Login form submitted', { email, redirect });
+    
+    // Basic validation
+    if (!email || !password) {
+      const errorMsg = 'Please fill in all fields';
+      console.error('Validation error:', errorMsg);
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: errorMsg,
+      });
+      return;
+    }
+    
     setIsLoading(true);
+    console.log('Attempting to sign in...');
 
     try {
       const result = await signIn('credentials', {
-        email,
-        password,
+        email: email.trim(),
+        password: password.trim(),
         redirect: false,
+        callbackUrl: redirect,
       });
 
+      console.log('SignIn result:', result);
+
       if (result?.error) {
+        // More specific error messages based on the error
+        let errorMessage = 'Invalid email or password';
+        
+        if (result.error.includes('CredentialsSignin')) {
+          errorMessage = 'Invalid email or password';
+        } else if (result.error.includes('user not found')) {
+          errorMessage = 'No account found with this email';
+        } else if (result.error.includes('password')) {
+          errorMessage = 'Incorrect password';
+        }
+        
+        console.error('Login failed:', { 
+          error: result.error,
+          message: errorMessage 
+        });
+        
         toast({
           variant: 'destructive',
           title: 'Login Failed',
-          description: result.error,
+          description: errorMessage,
         });
       } else {
+        // Login successful
+        console.log('Login successful, redirecting to:', redirect);
         toast({
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        router.push(redirect);
+        
+        // Use window.location.href for a full page reload to ensure all session data is loaded
+        window.location.href = redirect;
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: 'An unexpected error occurred.',
+        description: 'An unexpected error occurred. Please try again later.',
       });
     } finally {
       setIsLoading(false);

@@ -6,6 +6,25 @@ import ProductModel, { IProduct } from '@/models/ProductModel';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+// GET all orders (Admin Only)
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.isAdmin) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    await dbConnect();
+    const orders = await OrderModel.find({})
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    return NextResponse.json(orders, { status: 200 });
+  } catch (error) {
+    console.error('GET_ALL_ORDERS_ERROR', error);
+    return NextResponse.json({ message: 'Failed to fetch orders' }, { status: 500 });
+  }
+}
+
 // Helper function to calculate prices
 const calculatePrices = (orderItems: IOrderItem[]) => {
   const itemsPrice = orderItems.reduce(

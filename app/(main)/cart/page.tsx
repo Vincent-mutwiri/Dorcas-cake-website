@@ -10,31 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function CartPage() {
-  const [isClient, setIsClient] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const { items, itemsPrice, shippingPrice, taxPrice, totalPrice } =
     useSelector((state: RootState) => state.cart);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const checkoutHandler = () => {
     router.push('/checkout');
   };
-
-  if (!isClient) {
-    return (
-      <div className="container py-12">
-        <h1 className="mb-8 text-center text-4xl font-bold">Your Shopping Cart</h1>
-        <div className="animate-pulse text-center">Loading cart...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="container py-12">
