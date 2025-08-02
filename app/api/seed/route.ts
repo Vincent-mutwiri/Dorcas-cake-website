@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/utils/db';
 import ProductModel from '@/models/ProductModel';
 import CategoryModel from '@/models/CategoryModel';
+import UserModel from '@/models/UserModel';
+import bcrypt from 'bcryptjs';
 
 export async function GET(req: NextRequest) {
   await dbConnect();
@@ -11,6 +13,24 @@ export async function GET(req: NextRequest) {
     // Clear existing data
     await CategoryModel.deleteMany({});
     await ProductModel.deleteMany({});
+    await UserModel.deleteMany({});
+
+    // Create test users
+    const hashedPassword = await bcrypt.hash('password123', 12);
+    await UserModel.insertMany([
+      {
+        name: 'Test User',
+        email: 'test@example.com',
+        password: hashedPassword,
+        isAdmin: false,
+      },
+      {
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        isAdmin: true,
+      },
+    ]);
 
     // Create sample categories
     const categories = await CategoryModel.insertMany([
@@ -68,7 +88,13 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json(
-      { message: 'Database seeded successfully!' },
+      { 
+        message: 'Database seeded successfully!',
+        testUsers: [
+          { email: 'test@example.com', password: 'password123' },
+          { email: 'admin@example.com', password: 'password123' }
+        ]
+      },
       { status: 200 }
     );
   } catch (error: any) {

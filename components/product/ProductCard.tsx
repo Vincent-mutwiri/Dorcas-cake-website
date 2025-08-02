@@ -26,13 +26,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const addToCartHandler = () => {
     dispatch(
       addToCart({
+        id: product._id,
         _id: product._id,
         name: product.name,
         slug: product.slug,
         price: product.price,
-        qty: 1, // Default to 1 when adding from product card
-        countInStock: product.stock,
-        image: product.images[0] || '',
+        qty: 1,
+        stock: product.stock,
+        images: product.images,
+        category: product.category,
       })
     );
     toast({

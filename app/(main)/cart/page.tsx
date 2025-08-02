@@ -1,162 +1,136 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import { removeFromCart, updateQuantity, CartItem } from '@/store/slices/cartSlice';
+import Link from 'next/link';
 import Image from 'next/image';
-import { formatPrice } from '@/lib/utils';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/store/store';
+import { addToCart, removeFromCart } from '@/store/slices/cartSlice';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function CartPage() {
   const [isClient, setIsClient] = useState(false);
-  const router = useRouter();
   const dispatch = useDispatch();
-  const { items: cartItems } = useSelector((state: RootState) => state.cart);
-  
-  // Set isClient to true after component mounts (client-side only)
+  const router = useRouter();
+  const { items, itemsPrice, shippingPrice, taxPrice, totalPrice } =
+    useSelector((state: RootState) => state.cart);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleRemoveFromCart = (productId: string) => {
-    dispatch(removeFromCart(productId));
+  const checkoutHandler = () => {
+    router.push('/checkout');
   };
 
-  const handleUpdateQuantity = (productId: string, qty: number) => {
-    if (qty < 1) {
-      handleRemoveFromCart(productId);
-      return;
-    }
-    dispatch(updateQuantity(productId, qty));
-  };
-
-  const subtotal = cartItems.reduce(
-    (total, item) => total + (item.price || 0) * (item.qty || 0),
-    0
-  );
-  
-  // Safely get the first image or a fallback
-  const getFirstImage = (item: CartItem) => {
-    if (item.images?.length > 0) return item.images[0];
-    if (item.image) return item.image;
-    return '/placeholder-product.jpg'; // Add a fallback image
-  };
-
-  // Don't render anything during server-side rendering
   if (!isClient) {
     return (
-      <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
-        <div className="animate-pulse">Loading cart...</div>
+      <div className="container py-12">
+        <h1 className="mb-8 text-center text-4xl font-bold">Your Shopping Cart</h1>
+        <div className="animate-pulse text-center">Loading cart...</div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
-
-      <div className="cart-content-wrapper">
-        {cartItems.length === 0 ? (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">
-              Looks like you haven't added anything to your cart yet.
-            </p>
-            <Button onClick={() => router.push('/products')}>
-              Continue Shopping
-            </Button>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-6">
-              {cartItems.map((item, index) => {
-                // Create a stable key using both id and index as fallback
-                const itemKey = item.id || `item-${index}`;
-                return (
-                <div key={itemKey} className="flex items-center gap-4 border-b pb-6">
-                  <div className="relative w-24 h-24">
-                    <Image
-                      src={getFirstImage(item)}
-                      alt={item.name || 'Product image'}
-                      fill
-                      className="object-cover rounded-md"
-                      sizes="96px"
-                    />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.name || 'Unnamed Product'}</h3>
-                    <p className="text-sm text-muted-foreground">{item.category?.name || 'Cake'}</p>
-                    <p className="font-medium mt-1">{formatPrice(item.price || 0)}</p>
-                    
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => item.id && handleUpdateQuantity(item.id, (item.qty || 1) - 1)}
-                        disabled={!item.id}
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center">{item.qty || 1}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => item.id && handleUpdateQuantity(item.id, (item.qty || 0) + 1)}
-                        disabled={!item.id}
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                  
+    <div className="container py-12">
+      <h1 className="mb-8 text-center text-4xl font-bold">Your Shopping Cart</h1>
+      {items.length === 0 ? (
+        <div className="text-center">
+          <p className="text-xl">Your cart is empty.</p>
+          <Button asChild className="mt-4">
+            <Link href="/products">Go Shopping</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-12 md:grid-cols-3">
+          <div className="space-y-4 md:col-span-2">
+            {items.map((item) => (
+              <Card key={item.id || item._id} className="flex items-center p-4">
+                <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md">
+                  <Image
+                    src={item.images?.[0] || item.image || '/placeholder-product.jpg'}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="ml-4 flex-1">
+                  <Link
+                    href={`/products/${item.slug}`}
+                    className="font-semibold hover:text-primary"
+                  >
+                    {item.name}
+                  </Link>
+                  <p className="text-sm text-muted-foreground">
+                    ${item.price.toFixed(2)}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <Input
+                    type="number"
+                    value={item.qty}
+                    onChange={(e) =>
+                      dispatch(
+                        addToCart({ ...item, qty: Number(e.target.value) })
+                      )
+                    }
+                    min="1"
+                    max={item.stock || item.countInStock}
+                    className="w-20"
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => item.id && handleRemoveFromCart(item.id)}
-                    className="text-destructive"
-                    disabled={!item.id}
+                    onClick={() => dispatch(removeFromCart(item.id || item._id || ''))}
                   >
-                    ×
+                    <Trash2 className="h-5 w-5 text-destructive" />
                   </Button>
                 </div>
-                );
-              })}
-            </div>
-            
-            <div className="bg-muted p-6 rounded-lg h-fit">
-              <h2 className="text-lg font-medium mb-4">Order Summary</h2>
-              
-              <div className="space-y-4">
+              </Card>
+            ))}
+          </div>
+
+          <div className="md:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>${itemsPrice.toFixed(2)}</span>
                 </div>
-                
-                <div className="flex justify-between font-medium">
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>${shippingPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax</span>
+                  <span>${taxPrice.toFixed(2)}</span>
+                </div>
+                <hr />
+                <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>${totalPrice.toFixed(2)}</span>
                 </div>
-                
-                <Button className="w-full mt-4" size="lg">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={checkoutHandler}
+                  disabled={items.length === 0}
+                >
                   Proceed to Checkout
                 </Button>
-                
-                <Button
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={() => router.push('/products')}
-                >
-                  Continue Shopping
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

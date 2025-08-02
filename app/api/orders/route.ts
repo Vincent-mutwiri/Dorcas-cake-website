@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { orderItems, shippingAddress, paymentMethod } = await req.json();
+    console.log('Order request data:', { orderItems, shippingAddress, paymentMethod });
 
     if (!orderItems || orderItems.length === 0) {
       return NextResponse.json(

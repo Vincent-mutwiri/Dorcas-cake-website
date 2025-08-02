@@ -1,24 +1,14 @@
 // components/layouts/Header.tsx
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { User, CakeSlice } from 'lucide-react';
-
-// Dynamically import the CartButton with SSR disabled to avoid hydration issues
-const CartButton = dynamic(() => import('@/components/layouts/CartButton'), {
-  ssr: false,
-  loading: () => (
-    <Link href="/cart" className="relative">
-      <Button variant="ghost" size="icon">
-        <span className="sr-only">Shopping Cart</span>
-      </Button>
-    </Link>
-  ),
-});
+import { User, CakeSlice, LogOut } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import CartButton from '@/components/layouts/CartButton';
 
 const Header = () => {
+  const { data: session } = useSession();
 
   return (
     <header className="bg-background/80 sticky top-0 z-50 w-full border-b backdrop-blur-sm">
@@ -42,10 +32,22 @@ const Header = () => {
         {/* Action Icons */}
         <div className="flex items-center space-x-4">
           <CartButton />
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
-            <span className="sr-only">User Account</span>
-          </Button>
+          {session ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">{session.user?.name}</span>
+              <Button variant="ghost" size="icon" onClick={() => signOut()}>
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Logout</span>
+              </Button>
+            </div>
+          ) : (
+            <Button asChild variant="ghost">
+              <Link href="/auth/login">
+                <User className="h-5 w-5 mr-2" />
+                Login
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

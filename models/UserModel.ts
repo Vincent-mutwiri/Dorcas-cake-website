@@ -3,7 +3,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 // Interface for the Address sub-document
 export interface IAddress extends Document {
-  street: string;
+  address: string;
   city: string;
   state: string;
   postalCode: string;
@@ -20,7 +20,7 @@ export interface IUser extends Document {
 }
 
 const addressSchema = new Schema<IAddress>({
-  street: { type: String, required: true },
+  address: { type: String, required: true },
   city: { type: String, required: true },
   state: { type: String, required: true },
   postalCode: { type: String, required: true },
