@@ -73,18 +73,33 @@ export default function CartPage() {
                   </p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <Input
-                    type="number"
-                    value={item.qty}
-                    onChange={(e) =>
-                      dispatch(
-                        addToCart({ ...item, qty: Number(e.target.value) })
-                      )
-                    }
-                    min="1"
-                    max={item.stock || item.countInStock}
-                    className="w-20 text-black"
-                  />
+                  <div className="flex items-center border rounded-md overflow-hidden">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        dispatch(addToCart({ ...item, qty: Math.max(1, item.qty - 1) }));
+                      }}
+                      className="h-10 w-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                      aria-label="Decrease quantity"
+                      disabled={item.qty <= 1}
+                    >
+                      <span className="text-lg font-medium">−</span>
+                    </button>
+                    <div className="h-10 w-12 flex items-center justify-center border-x bg-white">
+                      <span className="text-base font-medium">{item.qty}</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        dispatch(addToCart({ ...item, qty: item.qty + 1 }));
+                      }}
+                      className="h-10 w-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                      aria-label="Increase quantity"
+                      disabled={item.qty >= (item.stock || item.countInStock || 0)}
+                    >
+                      <span className="text-lg font-medium">+</span>
+                    </button>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"

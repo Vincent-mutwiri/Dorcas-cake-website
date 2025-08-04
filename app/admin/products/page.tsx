@@ -53,6 +53,13 @@ export default function AdminProductsPage() {
         <LoadingSpinner />
       ) : error ? (
         <p className="text-destructive">Failed to load products.</p>
+      ) : !products || products.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-xl mb-4">No products found</p>
+          <Button asChild>
+            <Link href="/admin/products/new/edit">Create your first product</Link>
+          </Button>
+        </div>
       ) : (
         <Table>
           <TableHeader>
@@ -82,11 +89,10 @@ export default function AdminProductsPage() {
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="icon"
                     onClick={() => deleteHandler(product._id)}
                     disabled={isDeleting}
-                    className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

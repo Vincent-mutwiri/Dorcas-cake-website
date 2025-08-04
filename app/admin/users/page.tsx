@@ -27,7 +27,12 @@ export default function AdminUsersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Users</h1>
-      {isLoading ? <LoadingSpinner /> : error ? <p className="text-destructive">Failed to load users.</p> : (
+      {isLoading ? <LoadingSpinner /> : error ? <p className="text-destructive">Failed to load users.</p> : !users || users.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-xl">No users found</p>
+          <p className="text-muted-foreground mt-2">Registered users will appear here</p>
+        </div>
+      ) : (
         <Table>
           <TableHeader>
             <TableRow>

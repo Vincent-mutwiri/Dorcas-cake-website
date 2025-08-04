@@ -2,24 +2,32 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { User, CakeSlice, LogOut } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
-import CartButton from '@/components/layouts/CartButton';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ShoppingCart, User, LogOut, CakeSlice, UserPlus, LogIn } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const Header = () => {
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
+  const { items } = useSelector((state: RootState) => state.cart);
+  const cartItemCount = items.reduce((acc, item) => acc + item.qty, 0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="bg-background/80 sticky top-0 z-50 w-full border-b backdrop-blur-sm">
       <div className="container flex h-16 items-center">
-        {/* Logo */}
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <CakeSlice className="h-6 w-6 text-primary" />
           <span className="font-bold">Dorcas Cake Shop</span>
         </Link>
 
-        {/* Main Navigation */}
         <nav className="flex flex-1 items-center space-x-4">
           <Link href="/products" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
             All Cakes
@@ -28,30 +36,58 @@ const Header = () => {
             Categories
           </Link>
           {session?.user?.isAdmin && (
-            <Link href="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            <Link href="/admin" className="text-sm font-medium text-red-500 transition-colors hover:text-red-700">
               Admin
             </Link>
           )}
         </nav>
 
-        {/* Action Icons */}
-        <div className="flex items-center space-x-4">
-          <CartButton />
+        <div className="flex items-center space-x-2">
+          <Button asChild variant="ghost" size="icon" className="relative">
+            <Link href="/cart">
+              <ShoppingCart className="h-5 w-5" />
+              {mounted && cartItemCount > 0 && (
+                <Badge className="absolute -right-2 -top-2 h-5 w-5 flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 p-0 text-xs">
+                  {cartItemCount}
+                </Badge>
+              )}
+              <span className="sr-only">Shopping Cart</span>
+            </Link>
+          </Button>
+
           {session ? (
-            <div className="flex items-center space-x-2">
-              <Link href="/profile" className="text-sm hover:text-primary">{session.user?.name}</Link>
-              <Button variant="ghost" size="icon" onClick={() => signOut()}>
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Logout</span>
+            <>
+              <Button asChild variant="ghost" size="icon">
+                <Link href="/orders">
+                  <User className="h-5 w-5" />
+                  <span className="sr-only">My Orders</span>
+                </Link>
               </Button>
-            </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => signOut()}
+                className="text-destructive hover:text-destructive/90"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Sign Out</span>
+              </Button>
+            </>
           ) : (
-            <Button asChild variant="ghost">
-              <Link href="/auth/login">
-                <User className="h-5 w-5 mr-2" />
-                Login
-              </Link>
-            </Button>
+            <>
+              <Button asChild variant="ghost" size="icon">
+                <Link href="/auth/login">
+                  <LogIn className="h-5 w-5" />
+                  <span className="sr-only">Login</span>
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="icon">
+                <Link href="/auth/register">
+                  <UserPlus className="h-5 w-5" />
+                  <span className="sr-only">Register</span>
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       </div>

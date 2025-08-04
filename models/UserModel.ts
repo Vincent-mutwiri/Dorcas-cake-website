@@ -34,7 +34,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: false },
     isAdmin: { type: Boolean, required: true, default: false },
-    profilePicture: { type: String, default: '/images/default-avatar.svg' },
+    profilePicture: { type: String, default: '/images/default-avatar.png' },
     addresses: [addressSchema],
   },
   {

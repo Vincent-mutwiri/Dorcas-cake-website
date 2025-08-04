@@ -97,19 +97,18 @@ export default function ProductDetailPage() {
     try {
       dispatch(
         addToCart({
-          id: product._id, // Changed from _id to id to match CartItem interface
-          _id: product._id, // Keep for backward compatibility
+          id: product._id,
+          _id: product._id,
           name: product.name,
           slug: product.slug,
           price: product.price,
           qty,
-          stock: product.stock, // Changed from countInStock to stock
-          countInStock: product.stock, // Keep for backward compatibility
-          images: product.images || [], // Changed from image to images array
-          image: product.images?.[0] || '', // Keep for backward compatibility
+          stock: product.stock,
+          countInStock: product.stock,
+          images: product.images,
           category: product.category ? {
             name: product.category.name,
-            slug: 'slug' in product.category ? String(product.category.slug) : undefined
+            slug: 'slug' in product.category ? product.category.slug : undefined
           } : undefined
         })
       );
@@ -178,35 +177,35 @@ export default function ProductDetailPage() {
 
           {product.stock > 0 && (
             <div className="flex items-center mb-6">
-              <span className="text-gray-700 mr-2">Qty:</span>
-              <div className="flex items-center border rounded">
+              <span className="text-gray-700 mr-4 font-medium">Quantity</span>
+              <div className="flex items-center border rounded-md overflow-hidden">
                 <button
-                  onClick={() => setQty(Math.max(1, qty - 1))}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200"
-                >
-                  -
-                </button>
-                <Input
-                  type="number"
-                  min="1"
-                  max={product.stock}
-                  value={qty}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value) && value >= 1 && value <= product.stock) {
-                      setQty(value);
-                    }
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setQty(prev => Math.max(1, prev - 1));
                   }}
-                  className="w-16 text-center border-0 border-x border-gray-200 rounded-none"
-                />
-                <button
-                  onClick={() => setQty(Math.min(product.stock, qty + 1))}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200"
+                  className="h-10 w-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                  aria-label="Decrease quantity"
+                  disabled={qty <= 1}
                 >
-                  +
+                  <span className="text-lg font-medium">−</span>
+                </button>
+                <div className="h-10 w-12 flex items-center justify-center border-x bg-white">
+                  <span className="text-base font-medium">{qty}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setQty(prev => Math.min(product.stock, prev + 1));
+                  }}
+                  className="h-10 w-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+                  aria-label="Increase quantity"
+                  disabled={qty >= product.stock}
+                >
+                  <span className="text-lg font-medium">+</span>
                 </button>
               </div>
-              <span className="text-sm text-gray-500 ml-2">
+              <span className="text-sm text-gray-500 ml-3">
                 {product.stock} available
               </span>
             </div>

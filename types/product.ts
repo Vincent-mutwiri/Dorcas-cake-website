@@ -10,7 +10,10 @@ export interface UIProduct {
   numReviews?: number;
   description: string;
   slug: string;
-  category: { name: string };
+  category: { 
+    name: string;
+    slug?: string; 
+  };
   isFeatured?: boolean;
 }
 

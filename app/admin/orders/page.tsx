@@ -26,7 +26,12 @@ export default function AdminOrdersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Orders</h1>
-      {isLoading ? <LoadingSpinner /> : error ? <p className="text-destructive">Failed to load orders.</p> : (
+      {isLoading ? <LoadingSpinner /> : error ? <p className="text-destructive">Failed to load orders.</p> : !orders || orders.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-xl">No orders found</p>
+          <p className="text-muted-foreground mt-2">Orders will appear here when customers make purchases</p>
+        </div>
+      ) : (
         <Table>
           <TableHeader>
             <TableRow>

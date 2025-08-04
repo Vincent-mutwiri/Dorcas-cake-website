@@ -51,7 +51,7 @@ export default function ProfilePage() {
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
             <Image
-              src={session.user.image || '/images/default-avatar.svg'}
+              src={session.user.image || '/images/default-avatar.png'}
               alt="Profile"
               width={80}
               height={80}

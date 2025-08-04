@@ -105,7 +105,7 @@ export const authOptions: NextAuthOptions = {
             id: user._id?.toString() || '',
             name: user.name || '',
             email: user.email,
-            image: user.profilePicture || '/images/default-avatar.svg',
+            image: user.profilePicture || '/images/default-avatar.png',
             isAdmin: Boolean(user.isAdmin),
           };
           
@@ -134,7 +134,7 @@ export const authOptions: NextAuthOptions = {
           });
           token.id = user.id;
           token.isAdmin = (user as any).isAdmin || false;
-          token.picture = (user as any).image || '/images/default-avatar.svg';
+          token.picture = (user as any).image || '/images/default-avatar.png';
         }
         return token;
       } catch (error) {
@@ -149,7 +149,7 @@ export const authOptions: NextAuthOptions = {
         if (session.user) {
           session.user.id = token.id as string;
           session.user.isAdmin = token.isAdmin as boolean;
-          session.user.image = token.picture as string || '/images/default-avatar.svg';
+          session.user.image = token.picture as string || '/images/default-avatar.png';
           console.log('Session user updated:', session.user);
         }
         return session;
