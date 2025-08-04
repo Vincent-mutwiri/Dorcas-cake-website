@@ -7,7 +7,8 @@ export interface IOrderItem {
   name: string;
   qty: number;
   image: string;
-  price: number;
+  price: number; // This is now the price for the specific weight
+  weight: string; // ADDED: The selected weight
   product: Types.ObjectId;
 }
 
@@ -42,6 +43,7 @@ const orderSchema = new Schema<IOrder>(
         qty: { type: Number, required: true },
         image: { type: String, required: true },
         price: { type: Number, required: true },
+        weight: { type: String, required: true },
         product: {
           type: Schema.Types.ObjectId,
           ref: 'Product',

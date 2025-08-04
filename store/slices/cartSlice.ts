@@ -7,7 +7,8 @@ export interface CartItem {
   _id?: string; // Keep for backward compatibility
   name: string;
   slug: string;
-  price: number;
+  price: number; // ADDED: The price for the selected weight
+  selectedWeight: string; // ADDED: The selected weight
   images: string[]; // Changed from image to images to match the product interface
   image?: string; // Keep for backward compatibility
   stock: number; // Changed from countInStock to stock to match the product interface
@@ -79,7 +80,9 @@ const cartSlice = createSlice({
   reducers: {
     addToCart: (state, action: PayloadAction<CartItem>) => {
       const newItem = action.payload;
-      const existItemIndex = state.items.findIndex((x) => x.id === newItem.id || x._id === newItem._id);
+      const existItemIndex = state.items.findIndex(
+        (x) => (x.id === newItem.id || x._id === newItem._id) && x.selectedWeight === newItem.selectedWeight
+      );
 
       if (existItemIndex >= 0) {
         // Update existing item quantity
@@ -90,9 +93,11 @@ const cartSlice = createSlice({
       }
       updateCart(state);
     },
-    removeFromCart(state, action: PayloadAction<string>) {
-      const itemId = action.payload;
-      state.items = state.items.filter((item) => item.id !== itemId && item._id !== itemId);
+    removeFromCart(state, action: PayloadAction<{ id: string; weight: string }>) {
+      const { id, weight } = action.payload;
+      state.items = state.items.filter(
+        (item) => !((item.id === id || item._id === id) && item.selectedWeight === weight)
+      );
       updateCart(state);
     },
     updateQuantity: {

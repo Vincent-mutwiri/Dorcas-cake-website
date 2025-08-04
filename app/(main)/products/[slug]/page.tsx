@@ -1,7 +1,7 @@
 // app/(main)/products/[slug]/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useDispatch } from 'react-redux';
@@ -10,11 +10,13 @@ import { useProductBySlug } from '@/hooks/useProductBySlug';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, ArrowLeft } from 'lucide-react';
-import { UIProduct, toUIProduct } from '@/types/product';
+import { UIProduct, toUIProduct, PriceVariant } from '@/types/product';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -41,12 +43,32 @@ export default function ProductDetailPage() {
   const { slug } = params as { slug: string };
   const dispatch = useDispatch();
   const [qty, setQty] = useState(1);
+  const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const { toast } = useToast();
 
   const { data, isLoading, error } = useProductBySlug(slug) as {
     data: { product: UIProduct; reviews: any[] } | undefined;
     isLoading: boolean;
     error: any;
+  };
+
+  // Set initial weight and price when data loads
+  useEffect(() => {
+    if (data?.product?.priceVariants?.length) {
+      const initialWeight = data.product.priceVariants[0].weight;
+      const initialPrice = data.product.priceVariants[0].price;
+      setSelectedWeight(initialWeight);
+      setCurrentPrice(initialPrice);
+    }
+  }, [data]);
+
+  const handleWeightChange = (weight: string) => {
+    const variant = data?.product?.priceVariants?.find((v: PriceVariant) => v.weight === weight);
+    if (variant) {
+      setSelectedWeight(variant.weight);
+      setCurrentPrice(variant.price);
+    }
   };
 
   if (isLoading) {
@@ -92,7 +114,7 @@ export default function ProductDetailPage() {
   }
 
   const addToCartHandler = () => {
-    if (!product) return;
+    if (!product || !selectedWeight || currentPrice === null) return;
     
     try {
       dispatch(
@@ -101,7 +123,8 @@ export default function ProductDetailPage() {
           _id: product._id,
           name: product.name,
           slug: product.slug,
-          price: product.price,
+          price: currentPrice,
+          selectedWeight,
           qty,
           stock: product.stock,
           countInStock: product.stock,
@@ -114,7 +137,7 @@ export default function ProductDetailPage() {
       );
       toast({
         title: `${product.name} added to cart`,
-        description: `You have added ${qty} of ${product.name} to your cart.`,
+        description: `You have added ${qty} of ${product.name} (${selectedWeight}) to your cart.`,
       });
     } catch (error) {
       toast({
@@ -161,8 +184,27 @@ export default function ProductDetailPage() {
           </div>
 
           <p className="text-3xl font-bold text-gray-900 mb-6">
-            ${product.price.toFixed(2)}
+            ${currentPrice ? currentPrice.toFixed(2) : (product.basePrice || product.price).toFixed(2)}
           </p>
+
+          {/* Weight Selector */}
+          {product.priceVariants && product.priceVariants.length > 0 && (
+            <div className="mb-6">
+              <Label>Size</Label>
+              <Select value={selectedWeight || ''} onValueChange={handleWeightChange}>
+                <SelectTrigger className="w-[180px] mt-2">
+                  <SelectValue placeholder="Select a size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {product.priceVariants?.map((variant: PriceVariant) => (
+                    <SelectItem key={variant.weight} value={variant.weight}>
+                      {variant.weight} - ${variant.price.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <p className="text-gray-700 mb-6">{product.description}</p>
 

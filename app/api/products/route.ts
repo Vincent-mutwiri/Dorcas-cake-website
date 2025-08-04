@@ -36,13 +36,18 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { name, description, price, category, stock, images } = body;
+    const { name, description, priceVariants, category, stock, images } = body;
 
-    if (!name || !description || !price || !category || !stock || !images) {
+    if (!name || !description || !priceVariants || !category || !stock || !images) {
       return NextResponse.json(
         { message: 'All product fields are required' },
         { status: 400 }
       );
+    }
+
+    // Calculate basePrice from the variants
+    if (priceVariants && priceVariants.length > 0) {
+      body.basePrice = Math.min(...priceVariants.map((v: any) => v.price));
     }
 
     const slug = name.toLowerCase().replace(/\s+/g, '-');

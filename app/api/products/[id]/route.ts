@@ -6,11 +6,12 @@ import ReviewModel from '@/models/ReviewModel';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const id = context.params.id;
   try {
     await dbConnect();
-    const product = await ProductModel.findById(params.id).populate(
+    const product = await ProductModel.findById(id).populate(
       'category',
       'name slug'
     );
@@ -20,7 +21,7 @@ export async function GET(
     }
 
     // Also fetch reviews for this product
-    const reviews = await ReviewModel.find({ product: params.id }).sort({
+    const reviews = await ReviewModel.find({ product: id }).sort({
       createdAt: -1,
     });
 
@@ -44,8 +45,9 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 // PUT - Update a product (Admin Only)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const id = context.params.id;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -54,11 +56,24 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
-    const updatedProduct = await ProductModel.findByIdAndUpdate(
-      params.id,
-      body,
-      { new: true, runValidators: true }
-    );
+
+    if (body.category === '') {
+      delete body.category;
+    }
+
+    // Handle legacy products without priceVariants
+    if (!body.priceVariants && body.price) {
+      body.priceVariants = [{ weight: '1KG', price: body.price }];
+      body.basePrice = body.price;
+      delete body.price; // Remove legacy price field
+    } else if (body.priceVariants && body.priceVariants.length > 0) {
+      body.basePrice = Math.min(...body.priceVariants.map((v: any) => v.price));
+    }
+
+    const updatedProduct = await ProductModel.findByIdAndUpdate(id, body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updatedProduct) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });
@@ -66,15 +81,19 @@ export async function PUT(
     return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
     console.error('PUT_PRODUCT_ERROR', error);
-    return NextResponse.json({ message: 'Failed to update product' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to update product' },
+      { status: 500 }
+    );
   }
 }
 
 // DELETE - Delete a product (Admin Only)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const id = context.params.id;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -82,14 +101,20 @@ export async function DELETE(
 
   try {
     await dbConnect();
-    const deletedProduct = await ProductModel.findByIdAndDelete(params.id);
+    const deletedProduct = await ProductModel.findByIdAndDelete(id);
 
     if (!deletedProduct) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });
     }
-    return NextResponse.json({ message: 'Product deleted successfully' }, { status: 200 });
+    return NextResponse.json(
+      { message: 'Product deleted successfully' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('DELETE_PRODUCT_ERROR', error);
-    return NextResponse.json({ message: 'Failed to delete product' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to delete product' },
+      { status: 500 }
+    );
   }
 }

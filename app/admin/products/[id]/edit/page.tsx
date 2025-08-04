@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import AddCategoryModal from '@/components/modals/AddCategoryModal';
 
 export default function ProductEditPage() {
   const router = useRouter();
@@ -34,15 +35,16 @@ export default function ProductEditPage() {
     slug: '',
     description: '',
     category: '',
-    images: ['/images/placeholder.jpg'],
-    price: 0,
+    images: ['/images/chocolate-cake.jpg'],
     stock: 0,
     isFeatured: false,
   });
+  const [priceVariants, setPriceVariants] = useState([{ weight: '', price: 0 }]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: productData, isLoading: isLoadingProduct } =
     useGetProductByIdQuery(productId, { skip: isNewProduct });
-  const { data: categories, isLoading: isLoadingCategories } = useGetCategoriesQuery();
+  const { data: categories, isLoading: isLoadingCategories, refetch } = useGetCategoriesQuery();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
 
@@ -54,10 +56,17 @@ export default function ProductEditPage() {
         description: productData.product.description,
         category: (productData.product.category as any)._id,
         images: productData.product.images,
-        price: productData.product.price,
         stock: productData.product.stock,
         isFeatured: productData.product.isFeatured,
       });
+      // Handle legacy products without priceVariants
+      if (productData.product.priceVariants && productData.product.priceVariants.length > 0) {
+        setPriceVariants(productData.product.priceVariants);
+      } else if (productData.product.price) {
+        setPriceVariants([{ weight: '1KG', price: productData.product.price }]);
+      } else {
+        setPriceVariants([{ weight: '', price: 0 }]);
+      }
     }
   }, [productData]);
 
@@ -74,14 +83,29 @@ export default function ProductEditPage() {
     setFormData((prev) => ({ ...prev, category: value }));
   };
 
+  const handleVariantChange = (index: number, field: string, value: string | number) => {
+    const newVariants = [...priceVariants];
+    (newVariants[index] as any)[field] = value;
+    setPriceVariants(newVariants);
+  };
+
+  const addVariant = () => {
+    setPriceVariants([...priceVariants, { weight: '', price: 0 }]);
+  };
+
+  const removeVariant = (index: number) => {
+    setPriceVariants(priceVariants.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const productPayload = { ...formData, priceVariants };
       if (isNewProduct) {
-        await createProduct(formData).unwrap();
+        await createProduct(productPayload).unwrap();
         toast({ title: 'Success', description: 'Product created.' });
       } else {
-        await updateProduct({ id: productId, data: formData }).unwrap();
+        await updateProduct({ id: productId, data: productPayload }).unwrap();
         toast({ title: 'Success', description: 'Product updated.' });
       }
       router.push('/admin/products');
@@ -107,26 +131,28 @@ export default function ProductEditPage() {
           <Label htmlFor="name">Name</Label>
           <Input id="name" name="name" value={formData.name} onChange={handleChange} />
         </div>
-        <div>
-          <Label htmlFor="price">Price</Label>
-          <Input id="price" name="price" type="number" value={formData.price} onChange={handleChange} />
-        </div>
+
         <div>
           <Label htmlFor="stock">Stock</Label>
           <Input id="stock" name="stock" type="number" value={formData.stock} onChange={handleChange} />
         </div>
         <div>
           <Label htmlFor="category">Category</Label>
-          <Select value={formData.category} onValueChange={handleCategoryChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories?.map((cat) => (
-                <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={formData.category} onValueChange={handleCategoryChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                {categories?.map((cat) => (
+                  <SelectItem key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="button" onClick={() => setIsModalOpen(true)}>Add Category</Button>
+          </div>
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="description">Description</Label>
@@ -143,7 +169,7 @@ export default function ProductEditPage() {
                   variant="destructive" 
                   size="sm" 
                   className="absolute -top-2 -right-2"
-                  onClick={() => setFormData(prev => ({ ...prev, images: ['/images/placeholder.jpg'] }))}
+                  onClick={() => setFormData(prev => ({ ...prev, images: ['/images/chocolate-cake.jpg'] }))}
                 >
                   ×
                 </Button>
@@ -166,11 +192,45 @@ export default function ProductEditPage() {
             </div>
           </div>
         </div>
+        
+        <div className="md:col-span-2">
+          <Label>Price Variants</Label>
+          <div className="space-y-2 mt-2">
+            {priceVariants.map((variant, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  placeholder="Weight (e.g., 1KG)"
+                  value={variant.weight}
+                  onChange={(e) => handleVariantChange(index, 'weight', e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Price"
+                  value={variant.price}
+                  onChange={(e) => handleVariantChange(index, 'price', Number(e.target.value))}
+                />
+                <Button type="button" variant="destructive" size="sm" onClick={() => removeVariant(index)}>
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={addVariant}>
+              Add Price Variant
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Button type="submit" disabled={isUpdating || isCreating}>
         {isUpdating || isCreating ? 'Saving...' : 'Save Product'}
       </Button>
+      <AddCategoryModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          refetch();
+        }}
+      />
     </form>
   );
 }

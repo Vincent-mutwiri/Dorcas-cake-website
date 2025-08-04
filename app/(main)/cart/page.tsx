@@ -69,6 +69,7 @@ export default function CartPage() {
                     {item.name}
                   </Link>
                   <p className="text-sm text-muted-foreground">
+                    {item.selectedWeight && <span className="mr-2">Size: {item.selectedWeight}</span>}
                     ${item.price.toFixed(2)}
                   </p>
                 </div>
@@ -103,7 +104,7 @@ export default function CartPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => dispatch(removeFromCart(item.id || item._id || ''))}
+                    onClick={() => dispatch(removeFromCart({ id: item.id || item._id || '', weight: item.selectedWeight || '' }))}
                   >
                     <Trash2 className="h-5 w-5 text-destructive" />
                   </Button>

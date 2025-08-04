@@ -117,6 +117,14 @@ export const api = createApi({
       query: () => 'categories',
       providesTags: ['Category'],
     }),
+    createCategory: builder.mutation<ICategory, Partial<ICategory>>({
+      query: (category) => ({
+        url: 'categories',
+        method: 'POST',
+        body: category,
+      }),
+      invalidatesTags: ['Category'],
+    }),
 
     // Order Endpoints
     createOrder: builder.mutation<IOrder, Partial<IOrder>>({
@@ -211,6 +219,7 @@ export const {
   useGetProductByIdQuery,
   useGetProductBySlugQuery,
   useGetCategoriesQuery,
+  useCreateCategoryMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
