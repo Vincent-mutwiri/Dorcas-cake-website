@@ -71,7 +71,7 @@ export const authOptions: NextAuthOptions = {
           console.log('Looking up user with email:', email);
           
           const user = await UserModel.findOne({ email })
-            .select('+password')
+            .select('+password profilePicture')
             .lean()
             .exec();
           
@@ -105,6 +105,7 @@ export const authOptions: NextAuthOptions = {
             id: user._id?.toString() || '',
             name: user.name || '',
             email: user.email,
+            image: user.profilePicture || '/images/default-avatar.svg',
             isAdmin: Boolean(user.isAdmin),
           };
           
@@ -133,6 +134,7 @@ export const authOptions: NextAuthOptions = {
           });
           token.id = user.id;
           token.isAdmin = (user as any).isAdmin || false;
+          token.picture = (user as any).image || '/images/default-avatar.svg';
         }
         return token;
       } catch (error) {
@@ -147,6 +149,7 @@ export const authOptions: NextAuthOptions = {
         if (session.user) {
           session.user.id = token.id as string;
           session.user.isAdmin = token.isAdmin as boolean;
+          session.user.image = token.picture as string || '/images/default-avatar.svg';
           console.log('Session user updated:', session.user);
         }
         return session;

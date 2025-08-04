@@ -39,7 +39,7 @@ const Header = () => {
           <CartButton />
           {session ? (
             <div className="flex items-center space-x-2">
-              <span className="text-sm">{session.user?.name}</span>
+              <Link href="/profile" className="text-sm hover:text-primary">{session.user?.name}</Link>
               <Button variant="ghost" size="icon" onClick={() => signOut()}>
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>

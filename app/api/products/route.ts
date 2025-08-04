@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/utils/db';
 import ProductModel from '@/models/ProductModel';
+import CategoryModel from '@/models/CategoryModel';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
@@ -9,6 +10,8 @@ import { authOptions } from '../auth/[...nextauth]/route';
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
+    // Ensure CategoryModel is loaded
+    CategoryModel;
     const products = await ProductModel.find({}).populate('category', 'name slug');
     return NextResponse.json(products, { status: 200 });
   } catch (error) {

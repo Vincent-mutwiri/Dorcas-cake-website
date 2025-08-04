@@ -18,10 +18,10 @@
     --secondary-foreground: 25 34.5% 22.9%;
 
     --muted: 30 25% 92.2%; /* Lighter brown */
-    --muted-foreground: 24 9.8% 10%;
+    --muted-foreground: 25 34.5% 35%; /* Darker for better contrast */
 
     --accent: 30 25% 92.2%;
-    --accent-foreground: 24 9.8% 10%;
+    --accent-foreground: 25 34.5% 22.9%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
@@ -38,7 +38,7 @@
     --sidebar-primary: 347 100% 91.2%;
     --sidebar-primary-foreground: 25 34.5% 22.9%;
     --sidebar-accent: 30 25% 92.2%;
-    --sidebar-accent-foreground: 24 9.8% 10%;
+    --sidebar-accent-foreground: 25 34.5% 22.9%;
     --sidebar-border: 30 20% 85.1%;
     --sidebar-ring: 347 100% 91.2%;
   }
@@ -60,7 +60,7 @@
     --secondary-foreground: 25 34.5% 22.9%;
     
     --muted: 30 25% 22.2%;
-    --muted-foreground: 20 14.3% 95.9%;
+    --muted-foreground: 20 14.3% 75%; /* Better contrast in dark mode */
     
     --accent: 30 25% 22.2%;
     --accent-foreground: 20 14.3% 95.9%;

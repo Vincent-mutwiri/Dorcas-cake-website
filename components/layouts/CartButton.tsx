@@ -23,8 +23,7 @@ const CartButton = () => {
         <ShoppingCart className="h-5 w-5" />
         {mounted && cartCount > 0 && (
           <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center rounded-full p-1 text-xs"
+            className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 text-xs p-1"
           >
             {cartCount}
           </Badge>

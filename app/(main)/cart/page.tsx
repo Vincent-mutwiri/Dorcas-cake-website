@@ -10,16 +10,33 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function CartPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const { items, itemsPrice, shippingPrice, taxPrice, totalPrice } =
     useSelector((state: RootState) => state.cart);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const checkoutHandler = () => {
     router.push('/checkout');
   };
+
+  if (!mounted) {
+    return (
+      <div className="container py-12">
+        <h1 className="mb-8 text-center text-4xl font-bold">Your Shopping Cart</h1>
+        <div className="text-center">
+          <p className="text-xl">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-12">
@@ -66,7 +83,7 @@ export default function CartPage() {
                     }
                     min="1"
                     max={item.stock || item.countInStock}
-                    className="w-20"
+                    className="w-20 text-black"
                   />
                   <Button
                     variant="ghost"

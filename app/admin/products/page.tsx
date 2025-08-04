@@ -82,10 +82,11 @@ export default function AdminProductsPage() {
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="icon"
                     onClick={() => deleteHandler(product._id)}
                     disabled={isDeleting}
+                    className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

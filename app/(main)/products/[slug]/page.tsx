@@ -97,13 +97,20 @@ export default function ProductDetailPage() {
     try {
       dispatch(
         addToCart({
-          _id: product._id,
+          id: product._id, // Changed from _id to id to match CartItem interface
+          _id: product._id, // Keep for backward compatibility
           name: product.name,
           slug: product.slug,
           price: product.price,
           qty,
-          countInStock: product.stock,
-          image: product.images[0] || '',
+          stock: product.stock, // Changed from countInStock to stock
+          countInStock: product.stock, // Keep for backward compatibility
+          images: product.images || [], // Changed from image to images array
+          image: product.images?.[0] || '', // Keep for backward compatibility
+          category: product.category ? {
+            name: product.category.name,
+            slug: 'slug' in product.category ? String(product.category.slug) : undefined
+          } : undefined
         })
       );
       toast({
@@ -122,7 +129,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Toaster position="top-right" />
+      <Toaster />
       <Button
         variant="ghost"
         onClick={() => router.back()}

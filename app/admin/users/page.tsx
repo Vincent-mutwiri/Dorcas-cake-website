@@ -53,6 +53,7 @@ export default function AdminUsersPage() {
                     size="sm" 
                     onClick={() => deleteHandler(user._id)} 
                     disabled={isDeleting}
+                    className="text-black"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete

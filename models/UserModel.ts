@@ -16,6 +16,7 @@ export interface IUser extends Document {
   email: string;
   password?: string; // Password is not always sent back
   isAdmin: boolean;
+  profilePicture?: string;
   addresses: IAddress[];
 }
 
@@ -33,6 +34,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: false },
     isAdmin: { type: Boolean, required: true, default: false },
+    profilePicture: { type: String, default: '/images/default-avatar.svg' },
     addresses: [addressSchema],
   },
   {
