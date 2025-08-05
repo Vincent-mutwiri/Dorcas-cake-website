@@ -125,6 +125,21 @@ export const api = createApi({
       }),
       invalidatesTags: ['Category'],
     }),
+    deleteCategory: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `categories/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Category'],
+    }),
+    updateCategory: builder.mutation<ICategory, { id: string; data: Partial<ICategory> }>({
+      query: ({ id, data }) => ({
+        url: `categories/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Category'],
+    }),
 
     // Order Endpoints
     createOrder: builder.mutation<IOrder, Partial<IOrder>>({
@@ -220,6 +235,8 @@ export const {
   useGetProductBySlugQuery,
   useGetCategoriesQuery,
   useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useUpdateCategoryMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,

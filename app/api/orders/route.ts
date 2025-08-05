@@ -33,7 +33,7 @@ const calculatePrices = (orderItems: IOrderItem[]) => {
   );
   // Simple tax calculation (e.g., 8%)
   const taxPrice = itemsPrice * 0.08;
-  // Shipping is free for orders over $100
+  // Shipping is free for orders over KSh 100
   const shippingPrice = itemsPrice > 100 ? 0 : 10;
   const totalPrice = itemsPrice + taxPrice + shippingPrice;
 
@@ -55,7 +55,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { orderItems, shippingAddress, paymentMethod } = await req.json();
+    const body = await req.json();
+    console.log('Full request body:', JSON.stringify(body, null, 2));
+    
+    const { orderItems, shippingAddress, paymentMethod } = body;
+    
+    // Validate required fields
+    if (!shippingAddress) {
+      throw new Error('Shipping address is required');
+    }
+    if (!shippingAddress.name) {
+      throw new Error('Name is required in shipping address');
+    }
+    if (!shippingAddress.phoneNumber) {
+      throw new Error('Phone number is required in shipping address');
+    }
+    
     console.log('Order request data:', { orderItems, shippingAddress, paymentMethod });
 
     if (!orderItems || orderItems.length === 0) {
@@ -81,9 +96,20 @@ export async function POST(req: NextRequest) {
       if (item.qty > dbProduct.stock) {
         throw new Error(`Not enough stock for ${dbProduct.name}.`);
       }
+      
+      // Find the correct price for the selected weight
+      let itemPrice = item.price; // Use the price from the cart
+      if (dbProduct.priceVariants && dbProduct.priceVariants.length > 0) {
+        const variant = dbProduct.priceVariants.find(v => v.weight === item.weight);
+        if (variant) {
+          itemPrice = variant.price;
+        }
+      }
+      
       return {
         ...item,
-        price: dbProduct.price, // Use the price from the database
+        price: itemPrice,
+        weight: item.weight || '1KG', // Ensure weight is included
       };
     });
 
@@ -113,8 +139,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(createdOrder, { status: 201 });
   } catch (error: any) {
     console.error('CREATE_ORDER_ERROR', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
-      { message: error.message || 'Failed to create order.' },
+      { message: error.message || 'Failed to create order.', error: error.toString() },
       { status: 500 }
     );
   }

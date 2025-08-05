@@ -42,8 +42,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
       })
     );
     toast({
-      title: `${product.name} added to cart`,
-      description: `1 x ${product.name} has been added to your cart.`,
+      title: `KSh {product.name} added to cart`,
+      description: `1 x KSh {product.name} has been added to your cart.`,
     });
   };
 
@@ -87,7 +87,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </Link>
       <CardFooter className="flex items-center justify-between p-4 pt-0">
         <p className="text-xl font-bold text-text-main">
-          ${formattedPrice}
+          KSh {formattedPrice}
         </p>
         <Button 
           onClick={addToCartHandler}

@@ -26,11 +26,13 @@ export default function CheckoutPage() {
   const [createOrder, { isLoading, error }] = useCreateOrderMutation();
 
   const [shippingAddress, setShippingAddress] = useState({
-    street: '',
+    name: '',
+    phoneNumber: '',
+    streetName: '',
+    town: '',
     city: '',
-    state: '',
-    postalCode: '',
-    country: 'USA',
+    houseName: '',
+    houseNumber: '',
   });
 
   // Redirect if not logged in
@@ -52,17 +54,20 @@ export default function CheckoutPage() {
         qty: item.qty,
         image: item.images?.[0] || item.image || '',
         price: item.price,
+        weight: item.selectedWeight || '1KG',
         product: item.id || item._id || '',
       }));
 
       const res = await createOrder({
         orderItems,
         shippingAddress: {
-          address: shippingAddress.street,
+          name: shippingAddress.name,
+          phoneNumber: shippingAddress.phoneNumber,
+          address: `${shippingAddress.streetName}, ${shippingAddress.houseName ? shippingAddress.houseName + ', ' : ''}${shippingAddress.houseNumber ? 'House ' + shippingAddress.houseNumber + ', ' : ''}${shippingAddress.town}`,
           city: shippingAddress.city,
-          state: shippingAddress.state,
-          postalCode: shippingAddress.postalCode,
-          country: shippingAddress.country,
+          state: shippingAddress.town, // Use town as state for Kenya
+          postalCode: '00000', // Default postal code for Kenya
+          country: 'Kenya',
         },
         paymentMethod: 'PayPal',
         itemsPrice,
@@ -101,25 +106,33 @@ export default function CheckoutPage() {
               <CardTitle>Shipping Address</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" name="name" value={shippingAddress.name} onChange={handleInputChange} required />
+              </div>
+              <div>
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input id="phoneNumber" name="phoneNumber" value={shippingAddress.phoneNumber} onChange={handleInputChange} required />
+              </div>
               <div className="md:col-span-2">
-                <Label htmlFor="street">Street Address</Label>
-                <Input id="street" name="street" value={shippingAddress.street} onChange={handleInputChange} />
+                <Label htmlFor="streetName">Street Name</Label>
+                <Input id="streetName" name="streetName" value={shippingAddress.streetName} onChange={handleInputChange} required />
+              </div>
+              <div>
+                <Label htmlFor="town">Town</Label>
+                <Input id="town" name="town" value={shippingAddress.town} onChange={handleInputChange} required />
               </div>
               <div>
                 <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" value={shippingAddress.city} onChange={handleInputChange} />
+                <Input id="city" name="city" value={shippingAddress.city} onChange={handleInputChange} required />
               </div>
               <div>
-                <Label htmlFor="state">State</Label>
-                <Input id="state" name="state" value={shippingAddress.state} onChange={handleInputChange} />
+                <Label htmlFor="houseName">House Name/Estate (Optional)</Label>
+                <Input id="houseName" name="houseName" value={shippingAddress.houseName} onChange={handleInputChange} />
               </div>
               <div>
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input id="postalCode" name="postalCode" value={shippingAddress.postalCode} onChange={handleInputChange} />
-              </div>
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Input id="country" name="country" value={shippingAddress.country} onChange={handleInputChange} />
+                <Label htmlFor="houseNumber">House Number (Optional)</Label>
+                <Input id="houseNumber" name="houseNumber" value={shippingAddress.houseNumber} onChange={handleInputChange} />
               </div>
             </CardContent>
           </Card>
@@ -133,20 +146,20 @@ export default function CheckoutPage() {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${itemsPrice.toFixed(2)}</span>
+                <span>KSh {(itemsPrice || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>${shippingPrice.toFixed(2)}</span>
+                <span>KSh {(shippingPrice || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${taxPrice.toFixed(2)}</span>
+                <span>KSh {(taxPrice || 0).toFixed(2)}</span>
               </div>
               <hr />
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>KSh {(totalPrice || 0).toFixed(2)}</span>
               </div>
               <Button
                 className="w-full"

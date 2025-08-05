@@ -50,6 +50,8 @@ export default function ProductEditPage() {
     stock: 0,
     isFeatured: false,
   });
+  
+  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [priceVariants, setPriceVariants] = useState([{ weight: '', price: 0 }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,27 +63,54 @@ export default function ProductEditPage() {
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
 
   useEffect(() => {
+    console.log('useEffect triggered:', { isNewProduct, productData });
+    if (isNewProduct) {
+      setIsLoading(false);
+      return;
+    }
+
     if (productData) {
-      const product = productData as any; // Temporary type assertion
-      setFormData({
-        name: product.name || '',
-        slug: product.slug || '',
-        description: product.description || '',
-        category: product.category?._id || '',
-        images: product.images || [],
-        stock: product.stock || 0,
-        isFeatured: product.isFeatured || false,
-      });
-      // Handle legacy products without priceVariants
-      if (product.priceVariants?.length > 0) {
-        setPriceVariants(product.priceVariants);
-      } else if (product.price) {
-        setPriceVariants([{ weight: '1KG', price: product.price }]);
-      } else {
-        setPriceVariants([{ weight: '', price: 0 }]);
+      try {
+        const product = (productData as any).product || productData; // Handle API response structure
+        
+        // Set form data
+        setFormData({
+          name: product.name || '',
+          slug: product.slug || '',
+          description: product.description || '',
+          category: product.category?._id || '',
+          images: product.images || [],
+          stock: product.stock || 0,
+          isFeatured: product.isFeatured || false,
+        });
+
+        // Handle price variants
+        if (product.priceVariants?.length > 0) {
+          setPriceVariants(product.priceVariants);
+        } else if (product.price) {
+          // For backward compatibility with products that don't have price variants
+          setPriceVariants([{ 
+            weight: '1KG', 
+            price: product.price 
+          }]);
+        } else {
+          setPriceVariants([{ 
+            weight: '', 
+            price: 0 
+          }]);
+        }
+      } catch (error) {
+        console.error('Error processing product data:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load product data. Please try again.',
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
-  }, [productData]);
+  }, [productData, isNewProduct, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -163,6 +192,31 @@ export default function ProductEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.name || !formData.description || !formData.category) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in all required fields',
+      });
+      return;
+    }
+
+    // Validate price variants
+    const hasInvalidVariants = priceVariants.some(
+      variant => !variant.weight || isNaN(Number(variant.price)) || Number(variant.price) <= 0
+    );
+    
+    if (hasInvalidVariants) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please provide valid weight and price for all variants',
+      });
+      return;
+    }
+
     try {
       const selectedCategory = categories?.find(cat => cat._id === formData.category);
       
@@ -170,33 +224,59 @@ export default function ProductEditPage() {
         throw new Error('Please select a valid category');
       }
 
+      // Prepare the product data with proper types
       const productPayload = { 
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         category: selectedCategory, // Send the full category object
-        priceVariants,
         images: formData.images,
-        // Add any other required fields from the API
-        price: priceVariants[0]?.price || 0, // For backward compatibility
-        rating: 0, // Default values
+        stock: Number(formData.stock) || 0,
+        isFeatured: Boolean(formData.isFeatured),
+        priceVariants: priceVariants.map(variant => ({
+          weight: variant.weight,
+          price: Number(variant.price)
+        })),
+        // For backward compatibility
+        price: priceVariants[0]?.price ? Number(priceVariants[0].price) : 0,
+        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+        // Set default values for required fields
+        rating: 0,
         numReviews: 0,
       };
       
       if (isNewProduct) {
         await createProduct(productPayload).unwrap();
-        toast({ title: 'Success', description: 'Product created.' });
+        toast({ 
+          title: 'Success', 
+          description: 'Product created successfully',
+          duration: 3000,
+        });
       } else {
         await updateProduct({ 
           id: productId, 
           data: productPayload 
         }).unwrap();
-        toast({ title: 'Success', description: 'Product updated.' });
+        toast({ 
+          title: 'Success', 
+          description: 'Product updated successfully',
+          duration: 3000,
+        });
       }
-      router.push('/admin/products');
+      
+      // Redirect to products list after a short delay
+      setTimeout(() => {
+        router.push('/admin/products');
+        router.refresh(); // Ensure the products list is refreshed
+      }, 1000);
+      
     } catch (err: any) {
+      console.error('Product operation failed:', err);
+      const errorMessage = err.data?.message || err.message || 'Operation failed. Please try again.';
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: err.message || 'Operation failed. Please try again.',
+        description: errorMessage,
+        duration: 5000,
       });
     }
   };
@@ -250,7 +330,7 @@ export default function ProductEditPage() {
                   <div className="relative h-full w-full">
                     <Image
                       src={image}
-                      alt={`Product image ${index + 1}`}
+                      alt={`Product image KSh {index + 1}`}
                       fill
                       sizes="(max-width: 768px) 100vw, 128px"
                       className="object-cover rounded-md"
@@ -311,9 +391,14 @@ export default function ProductEditPage() {
         </div>
       </div>
 
-      <Button type="submit" disabled={isUpdating || isCreating || isUploading}>
-        {isUpdating || isCreating ? 'Saving...' : 'Save Product'}
-      </Button>
+      <div className="flex gap-4">
+        <Button type="submit" disabled={isUpdating || isCreating || isUploading}>
+          {isUpdating || isCreating ? 'Saving...' : 'Save Product'}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>
+          Cancel
+        </Button>
+      </div>
       <AddCategoryModal 
         isOpen={isModalOpen} 
         onClose={() => {

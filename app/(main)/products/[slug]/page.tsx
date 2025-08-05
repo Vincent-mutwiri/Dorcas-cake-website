@@ -136,8 +136,8 @@ export default function ProductDetailPage() {
         })
       );
       toast({
-        title: `${product.name} added to cart`,
-        description: `You have added ${qty} of ${product.name} (${selectedWeight}) to your cart.`,
+        title: `KSh {product.name} added to cart`,
+        description: `You have added KSh {qty} of KSh {product.name} (KSh {selectedWeight}) to your cart.`,
       });
     } catch (error) {
       toast({
@@ -184,7 +184,7 @@ export default function ProductDetailPage() {
           </div>
 
           <p className="text-3xl font-bold text-gray-900 mb-6">
-            ${currentPrice ? currentPrice.toFixed(2) : (product.basePrice || product.price).toFixed(2)}
+            KSh {currentPrice ? currentPrice.toFixed(2) : (product.basePrice || product.price).toFixed(2)}
           </p>
 
           {/* Weight Selector */}
@@ -198,7 +198,7 @@ export default function ProductDetailPage() {
                 <SelectContent>
                   {product.priceVariants?.map((variant: PriceVariant) => (
                     <SelectItem key={variant.weight} value={variant.weight}>
-                      {variant.weight} - ${variant.price.toFixed(2)}
+                      {variant.weight} - KSh {variant.price.toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>

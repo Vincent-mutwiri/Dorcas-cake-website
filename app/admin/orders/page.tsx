@@ -50,7 +50,7 @@ export default function AdminOrdersPage() {
                 <TableCell>{order._id.substring(20, 24)}</TableCell>
                 <TableCell>{(order.user as any)?.name || 'N/A'}</TableCell>
                 <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
+                <TableCell>KSh {order.totalPrice.toFixed(2)}</TableCell>
                 <TableCell>
                   <select 
                     value={order.isPaid ? 'paid' : 'unpaid'}

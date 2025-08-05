@@ -46,8 +46,8 @@ export default function OrderDetailPage() {
                 <div key={item.product} className="flex items-center space-x-4 py-2 border-b last:border-b-0">
                   <Image src={item.image} alt={item.name} width={64} height={64} className="rounded-md" />
                   <div className="flex-1">{item.name}</div>
-                  <div>{item.qty} x ${item.price.toFixed(2)}</div>
-                  <div className="font-semibold">${(item.qty * item.price).toFixed(2)}</div>
+                  <div>{item.qty} x KSh {item.price.toFixed(2)}</div>
+                  <div className="font-semibold">KSh {(item.qty * item.price).toFixed(2)}</div>
                 </div>
               ))}
             </CardContent>
@@ -58,11 +58,11 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex justify-between"><span>Subtotal</span><span>${order.itemsPrice.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Shipping</span><span>${order.shippingPrice.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Tax</span><span>${order.taxPrice.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Subtotal</span><span>KSh {order.itemsPrice.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Shipping</span><span>KSh {order.shippingPrice.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Tax</span><span>KSh {order.taxPrice.toFixed(2)}</span></div>
               <hr />
-              <div className="flex justify-between font-bold"><span>Total</span><span>${order.totalPrice.toFixed(2)}</span></div>
+              <div className="flex justify-between font-bold"><span>Total</span><span>KSh {order.totalPrice.toFixed(2)}</span></div>
             </CardContent>
           </Card>
           <Card>

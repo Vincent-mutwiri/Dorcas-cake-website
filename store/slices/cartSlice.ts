@@ -80,16 +80,16 @@ const cartSlice = createSlice({
   reducers: {
     addToCart: (state, action: PayloadAction<CartItem>) => {
       const newItem = action.payload;
-      const existItemIndex = state.items.findIndex(
-        (x) => (x.id === newItem.id || x._id === newItem._id) && x.selectedWeight === newItem.selectedWeight
+      const existItem = state.items.find(
+        (x) => x.id === newItem.id && x.selectedWeight === newItem.selectedWeight
       );
 
-      if (existItemIndex >= 0) {
-        // Update existing item quantity
-        state.items[existItemIndex].qty = newItem.qty;
+      if (existItem) {
+        state.items = state.items.map((x) =>
+          x.id === existItem.id && x.selectedWeight === existItem.selectedWeight ? newItem : x
+        );
       } else {
-        // Add new item
-        state.items.push(newItem);
+        state.items = [...state.items, newItem];
       }
       updateCart(state);
     },
@@ -100,26 +100,6 @@ const cartSlice = createSlice({
       );
       updateCart(state);
     },
-    updateQuantity: {
-      reducer(state, action: PayloadAction<{ id: string; qty: number }>) {
-        const { id, qty } = action.payload;
-        const itemIndex = state.items.findIndex(
-          (item) => item.id === id || item._id === id
-        );
-        
-        if (itemIndex >= 0) {
-          if (qty <= 0) {
-            state.items.splice(itemIndex, 1);
-          } else {
-            state.items[itemIndex].qty = qty;
-          }
-          updateCart(state);
-        }
-      },
-      prepare(id: string, qty: number) {
-        return { payload: { id, qty } };
-      },
-    },
     clearCart(state) {
       state.items = [];
       updateCart(state);
@@ -127,5 +107,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

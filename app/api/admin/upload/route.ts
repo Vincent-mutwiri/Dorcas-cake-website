@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 600 }); // URL expires in 10 minutes
 
-    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.KSh {process.env.AWS_REGION}.amazonaws.com/${key}`;
 
     return NextResponse.json({ uploadUrl, publicUrl }, { status: 200 });
 
