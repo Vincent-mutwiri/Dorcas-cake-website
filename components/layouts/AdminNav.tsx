@@ -2,12 +2,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Package, ShoppingCart, Users, FolderOpen } from 'lucide-react';
+import { Package, ShoppingCart, Users, FolderOpen, Star } from 'lucide-react';
 
 const links = [
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Categories', href: '/admin/categories', icon: FolderOpen },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Reviews', href: '/admin/reviews', icon: Star },
   { name: 'Users', href: '/admin/users', icon: Users },
 ];
 

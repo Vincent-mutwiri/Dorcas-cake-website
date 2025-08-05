@@ -24,9 +24,12 @@ export type ApiError = {
 export const reviewSchema = z.object({
   _id: z.string(),
   user: z.string(),
+  product: z.string(), // Added product ID
   name: z.string(),
   rating: z.number().min(1).max(5),
   comment: z.string(),
+  status: z.enum(['pending', 'approved', 'rejected']).default('pending'), // Added status
+  isFeatured: z.boolean().default(false), // Added isFeatured
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

@@ -7,6 +7,68 @@ import OrderModel from '@/models/OrderModel';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.isAdmin) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    await dbConnect();
+    // Use aggregation to get reviews with populated fields and preserve status/isFeatured
+    const reviews = await ReviewModel.aggregate([
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'product',
+          foreignField: '_id',
+          as: 'product'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: { path: '$product', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $unwind: { path: '$user', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          _id: 1,
+          rating: 1,
+          comment: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          status: { $ifNull: ['$status', 'pending'] },
+          isFeatured: { $ifNull: ['$isFeatured', false] },
+          'product._id': 1,
+          'product.name': 1,
+          'product.images': 1,
+          'user._id': 1,
+          'user.name': 1,
+          'user.email': 1
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
+    
+    console.log('Reviews with status:', reviews[0]);
+    return NextResponse.json(reviews);
+  } catch (error) {
+    console.error('GET_REVIEWS_ERROR', error);
+    return NextResponse.json({ message: 'Failed to fetch reviews' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -48,14 +110,14 @@ export async function POST(req: NextRequest) {
     // 2. (Optional but recommended) Check if the user has purchased this product
     const hasPurchased = await OrderModel.findOne({
       user: userId,
-      isPaid: true,
-      'orderItems.product': productId, // Check if the product exists in any of the user's paid orders
+      isDelivered: true, // Only allow reviews for delivered orders
+      'orderItems.product': productId,
     });
 
     if (!hasPurchased) {
       return NextResponse.json(
-        { message: 'You can only review products you have purchased.' },
-        { status: 403 } // 403 Forbidden
+        { message: 'You can only review products from delivered orders.' },
+        { status: 403 }
       );
     }
 
@@ -69,14 +131,8 @@ export async function POST(req: NextRequest) {
     });
     await newReview.save();
 
-    // 4. Update the product's rating and number of reviews
-    product.rating =
-      (product.rating * product.numReviews + rating) / (product.numReviews + 1);
-    product.numReviews += 1;
-    await product.save();
-
     return NextResponse.json(
-      { message: 'Review submitted successfully!', review: newReview },
+      { message: 'Review submitted and is pending approval.', review: newReview },
       { status: 201 }
     );
   } catch (error) {

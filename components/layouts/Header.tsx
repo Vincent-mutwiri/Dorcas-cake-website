@@ -57,10 +57,10 @@ const Header = () => {
 
           {session ? (
             <>
-              <Button asChild variant="ghost" size="icon">
+              <Button asChild variant="ghost" className="gap-2">
                 <Link href="/orders">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">My Orders</span>
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Orders</span>
                 </Link>
               </Button>
               <Button 

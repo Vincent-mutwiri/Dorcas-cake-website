@@ -12,11 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useToast } from '@/components/ui/use-toast';
-import { ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
+import { ShoppingCart, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface ProductCardProps {
   product: UIProduct;
+}
+
+interface FeaturedReview {
+  _id: string;
+  name: string;
+  rating: number;
+  comment: string;
+  isFeatured: boolean;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
@@ -25,9 +33,32 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const [selectedWeight, setSelectedWeight] = useState(
     product.priceVariants?.[0]?.weight || '1KG'
   );
+  const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null);
 
   const selectedVariant = product.priceVariants?.find(v => v.weight === selectedWeight);
   const currentPrice = selectedVariant?.price || product.price || 0;
+
+  useEffect(() => {
+    // Fetch featured review for this product
+    fetch(`/api/products/${product._id}/featured-review`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('Featured review response:', data);
+        if (data.review) setFeaturedReview(data.review);
+      })
+      .catch(err => console.log('Featured review error:', err));
+  }, [product._id]);
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-3 w-3 ${
+          i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
 
   const addToCartHandler = () => {
     dispatch(
@@ -116,6 +147,33 @@ const ProductCard = ({ product }: ProductCardProps) => {
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Add to Cart
+        </Button>
+        
+        {featuredReview && (
+          <div className="mt-4 p-3 bg-muted rounded-md">
+            <div className="flex items-start gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium">
+                  {(featuredReview.name || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium">{featuredReview.name || 'Anonymous'}</span>
+                  <div className="flex">{renderStars(featuredReview.rating)}</div>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {featuredReview.comment}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <Button asChild variant="outline" className="w-full mt-2">
+          <Link href={`/products/${product.slug}`}>
+            View More Reviews
+          </Link>
         </Button>
       </CardContent>
     </Card>

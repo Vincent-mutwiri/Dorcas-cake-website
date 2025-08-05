@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, ShoppingCart, Users, FolderOpen } from 'lucide-react';
+import { Package, ShoppingCart, Users, FolderOpen, Star } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const adminCards = [
@@ -12,6 +12,13 @@ export default function AdminDashboardPage() {
       color: 'bg-blue-500'
     },
     {
+      title: 'Categories',
+      description: 'Organize product categories',
+      icon: FolderOpen,
+      href: '/admin/categories',
+      color: 'bg-orange-500'
+    },
+    {
       title: 'Orders',
       description: 'View and manage customer orders',
       icon: ShoppingCart,
@@ -19,18 +26,18 @@ export default function AdminDashboardPage() {
       color: 'bg-green-500'
     },
     {
+      title: 'Reviews',
+      description: 'Manage customer reviews',
+      icon: Star,
+      href: '/admin/reviews',
+      color: 'bg-yellow-500'
+    },
+    {
       title: 'Users',
       description: 'Manage user accounts',
       icon: Users,
       href: '/admin/users',
       color: 'bg-purple-500'
-    },
-    {
-      title: 'Categories',
-      description: 'Organize product categories',
-      icon: FolderOpen,
-      href: '/admin/categories',
-      color: 'bg-orange-500'
     }
   ];
 

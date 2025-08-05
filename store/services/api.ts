@@ -215,6 +215,14 @@ export const api = createApi({
     }),
 
     // Review Endpoints
+    getReviews: builder.query<Review[], void>({
+      query: () => `reviews?t=${Date.now()}`,
+      providesTags: ['Review'],
+    }),
+    getAdminReviews: builder.query<Review[], void>({
+      query: () => 'admin/reviews',
+      providesTags: ['Review'],
+    }),
     submitReview: builder.mutation({
       query: (reviewData) => ({
         url: 'reviews',
@@ -223,7 +231,23 @@ export const api = createApi({
       }),
       invalidatesTags: (result, error, { productId }) => [
         { type: 'Product', id: productId },
+        'Review',
       ],
+    }),
+    updateReview: builder.mutation<Review, { id: string; data: Partial<Review> }>({
+      query: ({ id, data }) => ({
+        url: `reviews/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Review'],
+    }),
+    deleteReview: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `reviews/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Review'],
     }),
   }),
 });
@@ -248,4 +272,8 @@ export const {
   useGetUsersQuery,
   useDeleteUserMutation,
   useSubmitReviewMutation,
+  useGetReviewsQuery,
+  useGetAdminReviewsQuery,
+  useUpdateReviewMutation,
+  useDeleteReviewMutation,
 } = api;
