@@ -18,6 +18,8 @@ export interface IUser extends Document {
   isAdmin: boolean;
   profilePicture?: string;
   addresses: IAddress[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const addressSchema = new Schema<IAddress>({

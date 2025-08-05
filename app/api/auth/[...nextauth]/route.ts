@@ -24,6 +24,9 @@ declare module 'next-auth' {
   interface User {
     id: string;
     isAdmin: boolean;
+    name: string;
+    email: string;
+    image?: string;
   }
 }
 
@@ -32,6 +35,8 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     isAdmin: boolean;
+    email: string;
+    picture?: string;
   }
 }
 
@@ -71,7 +76,7 @@ export const authOptions: NextAuthOptions = {
           console.log('Looking up user with email:', email);
           
           const user = await UserModel.findOne({ email })
-            .select('+password profilePicture')
+            .select('+password profilePicture email name')
             .lean()
             .exec();
           
@@ -125,38 +130,36 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      try {
-        // Add user info to the token on sign in
-        if (user) {
-          console.log('JWT callback - adding user to token:', { 
-            userId: user.id,
-            isAdmin: (user as any).isAdmin 
-          });
-          token.id = user.id;
-          token.isAdmin = (user as any).isAdmin || false;
-          token.picture = (user as any).image || '/images/default-avatar.png';
-        }
-        return token;
-      } catch (error) {
-        console.error('JWT callback error:', error);
+      // Initial sign in
+      if (user) {
+        token.id = user.id;
+        token.isAdmin = user.isAdmin;
+        token.email = user.email;
+        token.picture = user.image;
         return token;
       }
+
+      // For subsequent requests, verify admin status from the database
+      try {
+        await dbConnect();
+        const dbUser = await UserModel.findById(token.id).select('isAdmin').lean();
+        if (dbUser) {
+          token.isAdmin = dbUser.isAdmin;
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+
+      return token;
     },
     async session({ session, token }) {
-      try {
-        console.log('Session callback - token:', token);
-        // Add user info to the session
-        if (session.user) {
-          session.user.id = token.id as string;
-          session.user.isAdmin = token.isAdmin as boolean;
-          session.user.image = token.picture as string || '/images/default-avatar.png';
-          console.log('Session user updated:', session.user);
-        }
-        return session;
-      } catch (error) {
-        console.error('Session callback error:', error);
-        return session;
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.isAdmin = token.isAdmin;
+        session.user.email = token.email;
+        session.user.image = token.picture;
       }
+      return session;
     },
   },
   pages: {

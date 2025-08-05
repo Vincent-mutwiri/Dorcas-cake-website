@@ -58,6 +58,7 @@ export default function CartPage() {
                     src={item.images?.[0] || item.image || '/placeholder-product.jpg'}
                     alt={item.name}
                     fill
+                    sizes="(max-width: 768px) 96px, 96px"
                     className="object-cover"
                   />
                 </div>

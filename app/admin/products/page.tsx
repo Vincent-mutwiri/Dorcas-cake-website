@@ -77,7 +77,7 @@ export default function AdminProductsPage() {
               <TableRow key={product._id}>
                 <TableCell>{product._id.substring(20, 24)}</TableCell>
                 <TableCell>{product.name}</TableCell>
-                <TableCell>${product.price.toFixed(2)}</TableCell>
+                <TableCell>${(product.priceVariants?.[0]?.price || product.price || 0).toFixed(2)}</TableCell>
                 <TableCell>{(product.category as any)?.name}</TableCell>
                 <TableCell>{product.stock}</TableCell>
                 <TableCell className="flex gap-2">

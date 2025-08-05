@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image'; // Import Next's Image component
 import {
   useGetProductByIdQuery,
   useUpdateProductMutation,
@@ -30,15 +31,26 @@ export default function ProductEditPage() {
   const isNewProduct = productId === 'new';
 
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
+  interface FormData {
+    name: string;
+    slug: string;
+    description: string;
+    category: string;
+    images: string[];
+    stock: number;
+    isFeatured: boolean;
+  }
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     slug: '',
     description: '',
     category: '',
-    images: ['/images/chocolate-cake.jpg'],
+    images: [],
     stock: 0,
     isFeatured: false,
   });
+  const [isUploading, setIsUploading] = useState(false);
   const [priceVariants, setPriceVariants] = useState([{ weight: '', price: 0 }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -50,20 +62,21 @@ export default function ProductEditPage() {
 
   useEffect(() => {
     if (productData) {
+      const product = productData as any; // Temporary type assertion
       setFormData({
-        name: productData.product.name,
-        slug: productData.product.slug,
-        description: productData.product.description,
-        category: (productData.product.category as any)._id,
-        images: productData.product.images,
-        stock: productData.product.stock,
-        isFeatured: productData.product.isFeatured,
+        name: product.name || '',
+        slug: product.slug || '',
+        description: product.description || '',
+        category: product.category?._id || '',
+        images: product.images || [],
+        stock: product.stock || 0,
+        isFeatured: product.isFeatured || false,
       });
       // Handle legacy products without priceVariants
-      if (productData.product.priceVariants && productData.product.priceVariants.length > 0) {
-        setPriceVariants(productData.product.priceVariants);
-      } else if (productData.product.price) {
-        setPriceVariants([{ weight: '1KG', price: productData.product.price }]);
+      if (product.priceVariants?.length > 0) {
+        setPriceVariants(product.priceVariants);
+      } else if (product.price) {
+        setPriceVariants([{ weight: '1KG', price: product.price }]);
       } else {
         setPriceVariants([{ weight: '', price: 0 }]);
       }
@@ -76,6 +89,57 @@ export default function ProductEditPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Get the pre-signed URL from our API
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      });
+
+      if (!res.ok) throw new Error('Failed to get pre-signed URL.');
+
+      const { uploadUrl, publicUrl } = await res.json();
+
+      // 2. Upload the file directly to S3 using the pre-signed URL
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+
+      if (!uploadRes.ok) throw new Error('S3 upload failed.');
+
+      // 3. Update the form state with the new public URL
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, publicUrl]
+      }));
+
+      toast({ title: 'Success', description: 'Image uploaded.' });
+    } catch (error: any) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Upload Error', 
+        description: error.message 
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
     }));
   };
 
@@ -100,20 +164,39 @@ export default function ProductEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const productPayload = { ...formData, priceVariants };
+      const selectedCategory = categories?.find(cat => cat._id === formData.category);
+      
+      if (!selectedCategory) {
+        throw new Error('Please select a valid category');
+      }
+
+      const productPayload = { 
+        ...formData,
+        category: selectedCategory, // Send the full category object
+        priceVariants,
+        images: formData.images,
+        // Add any other required fields from the API
+        price: priceVariants[0]?.price || 0, // For backward compatibility
+        rating: 0, // Default values
+        numReviews: 0,
+      };
+      
       if (isNewProduct) {
         await createProduct(productPayload).unwrap();
         toast({ title: 'Success', description: 'Product created.' });
       } else {
-        await updateProduct({ id: productId, data: productPayload }).unwrap();
+        await updateProduct({ 
+          id: productId, 
+          data: productPayload 
+        }).unwrap();
         toast({ title: 'Success', description: 'Product updated.' });
       }
       router.push('/admin/products');
-    } catch (err) {
+    } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Operation failed.',
+        description: err.message || 'Operation failed. Please try again.',
       });
     }
   };
@@ -159,36 +242,43 @@ export default function ProductEditPage() {
           <Textarea id="description" name="description" value={formData.description} onChange={handleChange} />
         </div>
         <div className="md:col-span-2">
-          <Label>Product Image</Label>
+          <Label>Product Images</Label>
           <div className="space-y-4">
-            {formData.images[0] && (
-              <div className="relative inline-block">
-                <img src={formData.images[0]} alt="Product" className="w-32 h-32 object-cover rounded" />
-                <Button 
-                  type="button"
-                  variant="destructive" 
-                  size="sm" 
-                  className="absolute -top-2 -right-2"
-                  onClick={() => setFormData(prev => ({ ...prev, images: ['/images/chocolate-cake.jpg'] }))}
-                >
-                  ×
-                </Button>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-4">
+              {formData.images.map((image, index) => (
+                <div key={index} className="relative h-32 w-32">
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={image}
+                      alt={`Product image ${index + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 128px"
+                      className="object-cover rounded-md"
+                      priority={index < 2} // Prioritize loading first 2 images
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                    onClick={() => removeImage(index)}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
             <div>
-              <Input 
-                type="file" 
+              <Input
+                type="file"
                 accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    // In a real app, upload to cloud storage and get URL
-                    const fakeUrl = `/images/${file.name}`;
-                    setFormData(prev => ({ ...prev, images: [fakeUrl] }));
-                  }
-                }}
+                onChange={handleImageUpload}
+                disabled={isUploading}
               />
-              <p className="text-xs text-muted-foreground mt-1">Upload an image file</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isUploading ? 'Uploading...' : 'Upload an image file (JPEG, PNG, etc.)'}
+              </p>
             </div>
           </div>
         </div>
@@ -221,7 +311,7 @@ export default function ProductEditPage() {
         </div>
       </div>
 
-      <Button type="submit" disabled={isUpdating || isCreating}>
+      <Button type="submit" disabled={isUpdating || isCreating || isUploading}>
         {isUpdating || isCreating ? 'Saving...' : 'Save Product'}
       </Button>
       <AddCategoryModal 

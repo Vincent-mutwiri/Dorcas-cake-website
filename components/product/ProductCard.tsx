@@ -24,6 +24,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const { toast } = useToast();
 
   const addToCartHandler = () => {
+    // Use the first price variant's weight as default if available, otherwise use 'standard'
+    const defaultWeight = product.priceVariants?.[0]?.weight || 'standard';
+    
     dispatch(
       addToCart({
         id: product._id,
@@ -31,6 +34,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         name: product.name,
         slug: product.slug,
         price: product.price,
+        selectedWeight: defaultWeight,
         qty: 1,
         stock: product.stock,
         images: product.images,
@@ -43,17 +47,27 @@ const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
+  // Safely get the first image or use a placeholder
+  const imageSrc = product.images?.[0] || '/images/vanilla-cake.jpg';
+  
+  // Safely get the category name
+  const categoryName = product.category?.name || 'Uncategorized';
+  
+  // Safely format the price with a fallback to 0
+  const formattedPrice = (product.price || 0).toFixed(2);
+  
   return (
     <Card className="overflow-hidden">
-      <Link href={`/products/${product.slug}`}>
+      <Link href={`/products/${product.slug || '#'}`}>
         <CardHeader className="p-0">
           <div className="relative h-48 w-full">
             <Image
-              src={product.images[0]}
-              alt={product.name}
+              src={imageSrc}
+              alt={product.name || 'Product image'}
               fill
-              style={{ objectFit: 'cover' }}
+              className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              priority
             />
           </div>
         </CardHeader>
@@ -64,18 +78,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </Badge>
           )}
           <CardTitle className="text-lg font-semibold leading-tight hover:text-primary">
-            {product.name}
+            {product.name || 'Unnamed Product'}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            {product.category.name}
+            {categoryName}
           </p>
         </CardContent>
       </Link>
       <CardFooter className="flex items-center justify-between p-4 pt-0">
         <p className="text-xl font-bold text-text-main">
-          ${product.price.toFixed(2)}
+          ${formattedPrice}
         </p>
-        <Button onClick={addToCartHandler}>Add to Cart</Button>
+        <Button 
+          onClick={addToCartHandler}
+          disabled={!product._id || !product.slug}
+        >
+          Add to Cart
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -2,10 +2,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/layouts/Header';
-import Footer from '@/components/layouts/Footer';
 import { Toaster } from '@/components/ui/toaster';
-import { Providers } from '@/components/common/Providers'; // Import our new Providers component
+import { Providers } from '@/components/common/Providers';
+import ConditionalLayout from '@/components/layouts/ConditionalLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,12 +21,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers> {/* Wrap everything in Providers */}
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
+        <Providers>
+          <ConditionalLayout>{children}</ConditionalLayout>
           <Toaster />
         </Providers>
       </body>

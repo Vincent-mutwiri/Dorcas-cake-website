@@ -1,49 +1,14 @@
-'use client';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import AdminLayoutClient from './AdminLayoutClient';
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import AdminNav from '@/components/layouts/AdminNav';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    console.log('Admin Layout - Status:', status, 'Session:', session);
-    if (status === 'unauthenticated' || (session && !session.user?.isAdmin)) {
-      console.log('Redirecting to login - Not admin or not authenticated');
-      router.push('/auth/login?error=AdminAccessRequired');
-    }
-  }, [session, status, router]);
-
-  if (status === 'loading') {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.isAdmin) {
-    return null;
+    redirect('/auth/login?error=AdminAccessRequired');
   }
 
-  return (
-    <div className="container grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <aside className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2 py-4">
-          <div className="flex-1">
-            <AdminNav />
-          </div>
-        </div>
-      </aside>
-      <main className="flex flex-col p-4 lg:p-6">{children}</main>
-    </div>
-  );
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }
