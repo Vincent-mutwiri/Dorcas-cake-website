@@ -11,7 +11,7 @@ import { UIProduct, toUIProduct } from '@/types/product';
 export default function HomePage() {
   const { data: products, isLoading, error } = useGetProductsQuery();
 
-  const featuredProducts = (products as ProductDocument[])?.filter((p) => p.isFeatured).slice(0, 3);
+
 
   return (
     <>
@@ -46,7 +46,27 @@ export default function HomePage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {featuredProducts?.map(product => toUIProduct(product)).map((product) => (
+              {(products as ProductDocument[])?.filter(p => p.isFeatured).map(product => toUIProduct(product)).map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* All Products Section */}
+      <section className="py-16 bg-muted/20">
+        <div className="container">
+          <h2 className="mb-8 text-center text-3xl font-bold">
+            All Our Cakes
+          </h2>
+          {!products || products.length === 0 ? (
+            <p className="text-center text-muted-foreground">
+              No cakes available at the moment.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {(products as ProductDocument[])?.map(product => toUIProduct(product)).map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

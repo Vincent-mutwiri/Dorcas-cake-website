@@ -364,6 +364,20 @@ export default function ProductEditPage() {
         </div>
         
         <div className="md:col-span-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isFeatured"
+              name="isFeatured"
+              checked={formData.isFeatured}
+              onChange={handleChange}
+              className="rounded"
+            />
+            <Label htmlFor="isFeatured">Featured Product</Label>
+          </div>
+        </div>
+        
+        <div className="md:col-span-2">
           <Label>Price Variants</Label>
           <div className="space-y-2 mt-2">
             {priceVariants.map((variant, index) => (

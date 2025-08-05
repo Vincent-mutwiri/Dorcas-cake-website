@@ -1,19 +1,19 @@
 // components/product/ProductCard.tsx
 import Link from 'next/link';
-import Image from 'next/image';
 import { UIProduct } from '@/types/product';
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useToast } from '@/components/ui/use-toast';
+import { ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: UIProduct;
@@ -22,80 +22,102 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const dispatch = useDispatch();
   const { toast } = useToast();
+  const [selectedWeight, setSelectedWeight] = useState(
+    product.priceVariants?.[0]?.weight || '1KG'
+  );
+
+  const selectedVariant = product.priceVariants?.find(v => v.weight === selectedWeight);
+  const currentPrice = selectedVariant?.price || product.price || 0;
 
   const addToCartHandler = () => {
-    // Use the first price variant's weight as default if available, otherwise use 'standard'
-    const defaultWeight = product.priceVariants?.[0]?.weight || 'standard';
-    
     dispatch(
       addToCart({
         id: product._id,
         _id: product._id,
         name: product.name,
-        slug: product.slug,
-        price: product.price,
-        selectedWeight: defaultWeight,
+        price: currentPrice,
+        selectedWeight: selectedWeight,
         qty: 1,
-        stock: product.stock,
         images: product.images,
+        image: product.images?.[0] || '',
+        stock: product.stock,
         category: product.category,
       })
     );
     toast({
-      title: `KSh {product.name} added to cart`,
-      description: `1 x KSh {product.name} has been added to your cart.`,
+      title: 'Added to Cart',
+      description: `${product.name} (${selectedWeight}) added to cart.`,
     });
   };
-
-  // Safely get the first image or use a placeholder
-  const imageSrc = product.images?.[0] || '/images/vanilla-cake.jpg';
-  
-  // Safely get the category name
-  const categoryName = product.category?.name || 'Uncategorized';
-  
-  // Safely format the price with a fallback to 0
-  const formattedPrice = (product.price || 0).toFixed(2);
   
   return (
-    <Card className="overflow-hidden">
-      <Link href={`/products/${product.slug || '#'}`}>
-        <CardHeader className="p-0">
-          <div className="relative h-48 w-full">
-            <Image
-              src={imageSrc}
-              alt={product.name || 'Product image'}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="aspect-square w-full mb-3 bg-muted rounded-md overflow-hidden">
+          {product.images?.[0] ? (
+            <img 
+              src={product.images[0]} 
+              alt={product.name}
+              className="w-full h-full object-cover"
             />
-          </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          {product.isFeatured && (
-            <Badge variant="destructive" className="mb-2">
-              Featured
-            </Badge>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+              No Image
+            </div>
           )}
-          <CardTitle className="text-lg font-semibold leading-tight hover:text-primary">
-            {product.name || 'Unnamed Product'}
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {categoryName}
-          </p>
-        </CardContent>
-      </Link>
-      <CardFooter className="flex items-center justify-between p-4 pt-0">
-        <p className="text-xl font-bold text-text-main">
-          KSh {formattedPrice}
+        </div>
+        <CardTitle className="text-lg">
+          <Link href={`/products/${product.slug}`} className="hover:text-primary">
+            {product.name}
+          </Link>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          {product.description || 'No description available'}
         </p>
+        
+        {product.priceVariants?.length > 0 ? (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Weight:</label>
+            <Select 
+              value={selectedWeight} 
+              onValueChange={setSelectedWeight}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {product.priceVariants.map((variant, idx) => (
+                  <SelectItem key={idx} value={variant.weight}>
+                    {variant.weight} - KSh {variant.price.toFixed(2)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+        
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-2xl font-bold text-primary">
+              KSh {currentPrice.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Stock: {product.stock || 0}
+            </p>
+          </div>
+        </div>
+        
         <Button 
+          className="w-full" 
           onClick={addToCartHandler}
-          disabled={!product._id || !product.slug}
+          disabled={!product.stock || product.stock === 0}
         >
+          <ShoppingCart className="h-4 w-4 mr-2" />
           Add to Cart
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 };

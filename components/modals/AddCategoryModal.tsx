@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCreateCategoryMutation, useUpdateCategoryMutation } from '@/store/services/api';
 import { useToast } from '@/components/ui/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 interface Category {
   _id: string;
@@ -22,6 +23,7 @@ interface Category {
   slug: string;
   description?: string;
   image?: string;
+  isFeatured?: boolean;
 }
 
 interface AddCategoryModalProps {
@@ -35,6 +37,7 @@ export default function AddCategoryModal({ isOpen, editingCategory, onClose }: A
     name: editingCategory?.name || '',
     description: editingCategory?.description || '',
     image: editingCategory?.image || '',
+    isFeatured: editingCategory?.isFeatured || false,
   });
 
   // Update form when editing category changes
@@ -44,9 +47,10 @@ export default function AddCategoryModal({ isOpen, editingCategory, onClose }: A
         name: editingCategory.name,
         description: editingCategory.description || '',
         image: editingCategory.image || '',
+        isFeatured: editingCategory.isFeatured || false,
       });
     } else {
-      setFormData({ name: '', description: '', image: '' });
+      setFormData({ name: '', description: '', image: '', isFeatured: false });
     }
   }, [editingCategory]);
   const [isUploading, setIsUploading] = useState(false);
@@ -111,6 +115,7 @@ export default function AddCategoryModal({ isOpen, editingCategory, onClose }: A
         name: formData.name.trim(),
         description: formData.description.trim(),
         image: formData.image,
+        isFeatured: formData.isFeatured,
         slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
       };
 
@@ -122,7 +127,7 @@ export default function AddCategoryModal({ isOpen, editingCategory, onClose }: A
         toast({ title: 'Success', description: 'Category created.' });
       }
       
-      setFormData({ name: '', description: '', image: '' });
+      setFormData({ name: '', description: '', image: '', isFeatured: false });
       onClose();
     } catch (err) {
       toast({
@@ -183,6 +188,18 @@ export default function AddCategoryModal({ isOpen, editingCategory, onClose }: A
               {formData.image && (
                 <img src={formData.image} alt="Preview" className="w-16 h-16 object-cover rounded" />
               )}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="isFeatured" className="text-right">
+              Featured
+            </Label>
+            <div className="col-span-3 flex items-center">
+              <Switch
+                id="isFeatured"
+                checked={formData.isFeatured}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFeatured: checked }))}
+              />
             </div>
           </div>
         </div>
