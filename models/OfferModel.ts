@@ -68,28 +68,17 @@ const offerSchema = new Schema<IOfferDocument, IOfferModel>(
   }
 );
 
-// Create a compound index to ensure only one active offer per product/variant within the same date range
+// Create a compound index to ensure only one active offer per product/variant during the same date range
 offerSchema.index(
-  { 
-    product: 1, 
+  {
+    product: 1,
     variantWeight: 1,
     startDate: 1,
     endDate: 1
   },
-  { 
+  {
     unique: true,
     partialFilterExpression: { isActive: true }
-  }
-);
-
-// Add a compound index for the pre-save hook check
-offerSchema.index(
-  { 
-    product: 1, 
-    variantWeight: 1,
-    isActive: 1,
-    startDate: 1,
-    endDate: 1
   }
 );
 
@@ -104,14 +93,23 @@ offerSchema.virtual('isCurrentlyActive').get(function(this: IOffer) {
 
 // Static method to find active offers for a product
 offerSchema.statics.findActiveForProduct = async function(
-  productId: Types.ObjectId
+  productId: Types.ObjectId,
+  variantWeight?: number
 ): Promise<HydratedDocument<IOfferDocument> | null> {
-  return this.findOne({
+  const query: Record<string, any> = {
     product: productId,
     isActive: true,
     startDate: { $lte: new Date() },
     endDate: { $gte: new Date() },
-  });
+  };
+
+  if (variantWeight !== undefined) {
+    query.variantWeight = variantWeight;
+  } else {
+    query.variantWeight = { $exists: false };
+  }
+
+  return this.findOne(query);
 };
 
 // Pre-save hook to ensure only one active offer per product/variant within the same date range
@@ -127,81 +125,53 @@ type PreSaveHookThis = IOfferDocument & {
 
 offerSchema.pre('save', async function(this: PreSaveHookThis, next) {
   try {
-    console.log('Starting pre-save hook for offer...');
-    
     // Skip the check if the offer is being deactivated
     if (this.isModified('isActive') && !this.isActive) {
-      console.log('Offer is being deactivated, skipping duplicate check');
       return next();
     }
-    
+
     // Only run the check for new offers or if relevant fields were modified
-    if (this.isNew || 
-        this.isModified('product') || 
-        this.isModified('isActive') || 
-        this.isModified('variantWeight') || 
-        this.isModified('startDate') || 
+    if (this.isNew ||
+        this.isModified('product') ||
+        this.isModified('isActive') ||
+        this.isModified('variantWeight') ||
+        this.isModified('startDate') ||
         this.isModified('endDate')) {
-      console.log('Offer is new or modified fields detected');
-      
-      // Type assertion for the model
+
       const OfferModel = this.constructor as unknown as IOfferModel;
-      
+
       // Build query to find conflicting offers
       const query: Record<string, any> = {
         product: this.product,
         _id: { $ne: this._id }, // Exclude the current offer when updating
         isActive: true,
-        $or: [
-          // Check for overlapping date ranges
-          { 
-            $and: [
-              { startDate: { $lte: this.endDate } },
-              { endDate: { $gte: this.startDate } }
-            ]
-          }
-        ],
+        // Correct logic for checking overlapping date ranges
+        startDate: { $lt: this.endDate },
+        endDate: { $gt: this.startDate }
       };
 
       // If a variant is specified, the conflict check should be scoped to that variant.
       // If no variant is specified, the check should only apply to other offers without a variant.
-      if (this.variantWeight !== undefined) {
+      if (this.variantWeight !== undefined && this.variantWeight !== null) {
         query.variantWeight = this.variantWeight;
       } else {
-        query.variantWeight = { $exists: false };
+        query.variantWeight = { $in: [null, undefined] };
       }
 
-      console.log('Final query for duplicate check:', JSON.stringify(query, null, 2));
-      
       const existingOffer = await (OfferModel as any).findOne(query).exec() as FindOneResult;
-      console.log('Existing offer found:', existingOffer ? 'Yes' : 'No');
 
       if (existingOffer) {
-        // If we're updating an existing offer and found the same document, allow it
-        if (this._id && existingOffer._id.equals(this._id)) {
-          console.log('Found the same offer during update, this is expected');
-          return next();
-        }
-        
         // Format a helpful error message
-        const productType = this.variantWeight 
-          ? `variant (${this.variantWeight})` 
+        const productType = this.variantDisplay
+          ? `variant (${this.variantDisplay})`
           : 'product';
-          
-        const errorMessage = `An active or scheduled offer already exists for this ${productType} during the selected date range`;
-        console.error(errorMessage);
+
+        const errorMessage = `An active offer already exists for this ${productType} within the selected date range.`;
         return next(new Error(errorMessage));
-      } else {
-        console.log('No conflicting offers found');
       }
-    } else {
-      console.log('No relevant fields modified, skipping duplicate check');
     }
-    
-    console.log('Pre-save hook completed successfully');
     next();
   } catch (error: unknown) {
-    console.error('Error in pre-save hook:', error);
     if (error instanceof Error) {
       next(error);
     } else {

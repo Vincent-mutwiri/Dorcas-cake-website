@@ -93,12 +93,12 @@ export async function POST(req: NextRequest) {
     };
 
     // Handle variant weight
-    if (offerData.variantWeight === '' || offerData.variantWeight === null || offerData.variantWeight === undefined) {
+    if (body.variantWeight === '' || body.variantWeight === null || body.variantWeight === undefined) {
       // If variantWeight is empty, null, or undefined, set it to undefined
-      delete offerData.variantWeight;
+      offerData.variantWeight = undefined;
     } else {
       // Extract numeric value from string (e.g., '2Kg' -> 2)
-      const numericValue = parseFloat(offerData.variantWeight.toString().replace(/[^0-9.]/g, ''));
+      const numericValue = parseFloat(body.variantWeight.toString().replace(/[^0-9.]/g, ''));
       
       if (isNaN(numericValue)) {
         return NextResponse.json(
@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
       // Store the numeric value
       offerData.variantWeight = numericValue;
       
-      // Store the original display value as a separate field
-      offerData.variantDisplay = offerData.variantWeight.toString();
+      // Store the original display value from the request body
+      offerData.variantDisplay = body.variantWeight; // Store original string for display
     }
 
     console.log('Creating offer with data:', JSON.stringify(offerData, null, 2));
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
       
       if (saveError.code === 11000) {
         return NextResponse.json(
-          { error: 'An active or scheduled offer already exists for this product/variant' },
+          { error: saveError.message },
           { status: 400 }
         );
       }
