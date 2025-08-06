@@ -163,14 +163,12 @@ offerSchema.pre('save', async function(this: PreSaveHookThis, next) {
         ],
       };
 
-      // Handle variant-specific offers
+      // If a variant is specified, the conflict check should be scoped to that variant.
+      // If no variant is specified, the check should only apply to other offers without a variant.
       if (this.variantWeight !== undefined) {
         query.variantWeight = this.variantWeight;
-        console.log('Checking for variant-specific offers with weight:', this.variantWeight);
       } else {
-        // For base product offers, only check other base product offers (no variantWeight)
         query.variantWeight = { $exists: false };
-        console.log('Checking for base product offers (no variant)');
       }
 
       console.log('Final query for duplicate check:', JSON.stringify(query, null, 2));

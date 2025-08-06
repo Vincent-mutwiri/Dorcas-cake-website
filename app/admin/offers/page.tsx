@@ -30,6 +30,7 @@ export default function AdminOffersPage() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [selectedProduct, setSelectedProduct] = useState<string>('');
+  
   interface SelectedVariant {
     weight: string;
     discountedPrice: number;
@@ -90,13 +91,16 @@ export default function AdminOffersPage() {
   };
   
   const handleVariantSelect = (variant: IPriceVariant) => {
-    const newVariant: SelectedVariant = {
-      weight: variant.weight,
-      discountedPrice: variant.price * 0.9 // 10% discount by default
-    };
-    setSelectedVariant(newVariant);
-    setValue('variantWeight', variant.weight, { shouldValidate: true });
-    setValue('discountedPrice', newVariant.discountedPrice, { shouldValidate: true });
+    // Only update if we're selecting a different variant
+    if (selectedVariant?.weight !== variant.weight) {
+      const newVariant = {
+        weight: variant.weight,
+        discountedPrice: variant.price * 0.9 // Default to 10% off
+      };
+      setSelectedVariant(newVariant);
+      setValue('variantWeight', variant.weight, { shouldValidate: true });
+      setValue('discountedPrice', newVariant.discountedPrice, { shouldValidate: true });
+    }
   };
 
   const onSubmit = async (data: IOfferInput) => {
@@ -109,12 +113,23 @@ export default function AdminOffersPage() {
       return;
     }
 
+    if (!selectedVariant) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select a variant and set a price.',
+      });
+      return;
+    }
+
     try {
       const offerData = {
         ...data,
         startDate,
         endDate,
         isActive: true,
+        discountedPrice: selectedVariant.discountedPrice,
+        variantWeight: selectedVariant.weight
       };
 
       if (editingId) {
@@ -182,7 +197,7 @@ export default function AdminOffersPage() {
                   onValueChange={(value) => {
                     setValue('product', value);
                     setSelectedProduct(value);
-                    setSelectedVariant('');
+                    setSelectedVariant(null);
                     setValue('variantWeight', '');
                     setValue('discountedPrice', 0);
                   }}
@@ -213,7 +228,12 @@ export default function AdminOffersPage() {
                       return (
                         <div 
                           key={variant.weight}
-                          onClick={() => handleVariantSelect(variant)}
+                          onClick={() => {
+                            // Only call handleVariantSelect if this variant is not already selected
+                            if (selectedVariant?.weight !== variant.weight) {
+                              handleVariantSelect(variant);
+                            }
+                          }}
                           className={`p-3 border rounded-md cursor-pointer transition-colors ${
                             isSelected 
                               ? 'border-primary bg-primary/10' 
@@ -231,18 +251,34 @@ export default function AdminOffersPage() {
                                   <Input
                                     type="number"
                                     step="0.01"
-                                    min="0.01"
-                                    value={watch('discountedPrice')}
+                                    min="0"
+                                    value={selectedVariant?.discountedPrice ?? ''}
                                     onChange={(e) => {
-                                      const price = parseFloat(e.target.value) || 0;
-                                      setSelectedVariant({
-                                        ...selectedVariant!,
-                                        discountedPrice: price
-                                      });
-                                      setValue('discountedPrice', price);
+                                      const value = e.target.value;
+                                      // Allow empty string for better UX when clearing the field
+                                      if (value === '') {
+                                        const updatedVariant = {
+                                          ...selectedVariant!,
+                                          discountedPrice: 0
+                                        };
+                                        setSelectedVariant(updatedVariant);
+                                        setValue('discountedPrice', 0, { shouldValidate: true });
+                                        return;
+                                      }
+                                      
+                                      const price = parseFloat(value);
+                                      if (!isNaN(price) && price >= 0) {
+                                        const updatedVariant = {
+                                          ...selectedVariant!,
+                                          discountedPrice: price
+                                        };
+                                        setSelectedVariant(updatedVariant);
+                                        setValue('discountedPrice', price, { shouldValidate: true });
+                                      }
                                     }}
-                                    className="w-24 h-8 text-right"
+                                    className="w-32 h-8 text-right"
                                     onClick={(e) => e.stopPropagation()}
+                                    placeholder="Enter price"
                                   />
                                 </div>
                               ) : (
