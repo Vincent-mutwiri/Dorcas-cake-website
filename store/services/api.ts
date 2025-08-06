@@ -1,6 +1,7 @@
 // store/services/api.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { IUser } from '@/models/UserModel';
+import { IAdminOffer, IOfferInput, IOfferResponse } from '@/types/offer';
 
 const baseQuery = fetchBaseQuery({ 
   baseUrl: '/api/',
@@ -12,7 +13,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
   reducerPath: 'api',
   baseQuery,
-  tagTypes: ['Product', 'Category', 'Order', 'User', 'Review'],
+  tagTypes: ['Product', 'Category', 'Order', 'User', 'Review', 'Offer'],
   endpoints: (builder) => ({
     // Product Endpoints
     getProducts: builder.query<any[], void>({
@@ -129,6 +130,46 @@ export const api = createApi({
       providesTags: (result, error, productId) => [{ type: 'Review', id: `featured-${productId}` }],
     }),
 
+    // Offer Endpoints
+    getActiveOffers: builder.query<IOfferResponse[], void>({
+      query: () => 'offers/active',
+      providesTags: ['Offer'],
+    }),
+    getAdminOffers: builder.query<IAdminOffer[], void>({
+      query: () => 'admin/offers',
+      providesTags: ['Offer'],
+    }),
+    getOfferById: builder.query<IAdminOffer, string>({
+      query: (id) => `admin/offers/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Offer', id }],
+    }),
+    createOffer: builder.mutation<IAdminOffer, IOfferInput>({
+      query: (data) => ({
+        url: 'admin/offers',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Offer'],
+    }),
+    updateOffer: builder.mutation<IAdminOffer, { id: string; data: Partial<IOfferInput> }>({
+      query: ({ id, data }) => ({
+        url: `admin/offers/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Offer', id },
+        { type: 'Offer', id: 'LIST' },
+      ],
+    }),
+    deleteOffer: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `admin/offers/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Offer'],
+    }),
+
     // User Endpoints
     getUsers: builder.query<any[], void>({
       query: () => 'users',
@@ -174,4 +215,10 @@ export const {
   useGetUsersQuery,
   useDeleteUserMutation,
   useUpdateUserProfileMutation,
+  useGetActiveOffersQuery,
+  useGetAdminOffersQuery,
+  useGetOfferByIdQuery,
+  useCreateOfferMutation,
+  useUpdateOfferMutation,
+  useDeleteOfferMutation,
 } = api;
