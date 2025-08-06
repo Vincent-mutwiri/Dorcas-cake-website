@@ -25,7 +25,7 @@ export async function GET(
       product: id,
       status: 'approved',
       isFeatured: true
-    }).populate('user', 'name');
+    }).populate('user', 'name profilePicture');
     
     console.log('Featured review found:', !!featuredReview);
 
@@ -41,7 +41,8 @@ export async function GET(
         name: featuredReview.user?.name || featuredReview.name || 'Anonymous',
         rating: featuredReview.rating,
         comment: featuredReview.comment,
-        isFeatured: featuredReview.isFeatured
+        isFeatured: featuredReview.isFeatured,
+        userImageUrl: featuredReview.user?.profilePicture
       }
     });
   } catch (error) {

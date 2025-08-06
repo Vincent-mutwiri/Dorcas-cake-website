@@ -1,83 +1,7 @@
 // store/services/api.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { z } from 'zod';
-import type { 
-  ProductResponse,
-  ApiError,
-  CartItem,
-  Review
-} from '@/types/api';
-import { 
-  productResponseSchema, 
-  productSchema, 
-  cartItemSchema, 
-  reviewSchema,
-  isApiError 
-} from '@/types/api';
+import { IUser } from '@/models/UserModel';
 
-// Re-export types for backward compatibility
-type IProduct = z.infer<typeof productSchema>;
-type ICategory = {
-  _id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-};
-
-type IOrder = {
-  _id: string;
-  user: string;
-  orderItems: Array<{
-    _id: string;
-    name: string;
-    qty: number;
-    image: string;
-    price: number;
-    product: string;
-  }>;
-  shippingAddress: {
-    address: string;
-    city: string;
-    postalCode: string;
-    country: string;
-  };
-  paymentMethod: string;
-  paymentResult?: {
-    id: string;
-    status: string;
-    update_time: string;
-    email_address: string;
-  };
-  itemsPrice: number;
-  taxPrice: number;
-  shippingPrice: number;
-  totalPrice: number;
-  isPaid: boolean;
-  paidAt?: string;
-  isDelivered: boolean;
-  deliveredAt?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Helper to handle RTK Query errors
-const handleQueryError = (error: unknown): { error: ApiError } => {
-  if (isApiError(error)) {
-    return { error };
-  }
-  return {
-    error: {
-      status: 500,
-      data: {
-        message: 'An unknown error occurred',
-        statusCode: 500,
-      },
-    },
-  };
-};
-
-// Base query
 const baseQuery = fetchBaseQuery({ 
   baseUrl: '/api/',
   prepareHeaders: (headers) => {
@@ -91,33 +15,48 @@ export const api = createApi({
   tagTypes: ['Product', 'Category', 'Order', 'User', 'Review'],
   endpoints: (builder) => ({
     // Product Endpoints
-    getProducts: builder.query<IProduct[], void>({
+    getProducts: builder.query<any[], void>({
       query: () => 'products',
-      providesTags: (result = []) => [
-        'Product',
-        ...result.map(({ _id }) => ({ type: 'Product' as const, id: _id })),
-      ],
+      providesTags: ['Product'],
     }),
-    getProductById: builder.query<IProduct, string>({
+    getProductById: builder.query<any, string>({
       query: (id) => `products/${id}`,
       providesTags: (result, error, id) => [{ type: 'Product', id }],
     }),
-    getProductBySlug: builder.query<ProductResponse, string>({
+    getProductBySlug: builder.query<any, string>({
       query: (slug) => `products/slug/${slug}`,
-      providesTags: (result, error, slug) => [
-        { 
-          type: 'Product' as const, 
-          id: result?.product?._id?.toString() || slug,
-        },
-      ],
+      providesTags: (result, error, slug) => [{ type: 'Product', id: slug }],
+    }),
+    createProduct: builder.mutation<any, any>({
+      query: (product) => ({
+        url: 'products',
+        method: 'POST',
+        body: product,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+    updateProduct: builder.mutation<any, { id: string; data: any }>({
+      query: ({ id, data }) => ({
+        url: `products/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+    deleteProduct: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `products/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Product'],
     }),
 
     // Category Endpoints
-    getCategories: builder.query<ICategory[], void>({
+    getCategories: builder.query<any[], void>({
       query: () => 'categories',
       providesTags: ['Category'],
     }),
-    createCategory: builder.mutation<ICategory, Partial<ICategory>>({
+    createCategory: builder.mutation<any, any>({
       query: (category) => ({
         url: 'categories',
         method: 'POST',
@@ -125,14 +64,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Category'],
     }),
-    deleteCategory: builder.mutation<{ message: string }, string>({
-      query: (id) => ({
-        url: `categories/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Category'],
-    }),
-    updateCategory: builder.mutation<ICategory, { id: string; data: Partial<ICategory> }>({
+    updateCategory: builder.mutation<any, { id: string; data: any }>({
       query: ({ id, data }) => ({
         url: `categories/${id}`,
         method: 'PUT',
@@ -142,57 +74,27 @@ export const api = createApi({
     }),
 
     // Order Endpoints
-    createOrder: builder.mutation<IOrder, Partial<IOrder>>({
+    createOrder: builder.mutation<any, any>({
       query: (order) => ({
         url: 'orders',
         method: 'POST',
         body: order,
       }),
-      invalidatesTags: [{ type: 'Product', id: 'LIST' }], // Invalidate product list to update stock
+      invalidatesTags: ['Order'],
     }),
-    getMyOrders: builder.query<IOrder[], void>({
+    getMyOrders: builder.query<any[], void>({
       query: () => 'orders/mine',
       providesTags: ['Order'],
     }),
-    getOrderById: builder.query<IOrder, string>({
+    getOrderById: builder.query<any, string>({
       query: (id) => `orders/${id}`,
       providesTags: (result, error, id) => [{ type: 'Order', id }],
     }),
-
-    // Product CRUD Mutations
-    createProduct: builder.mutation<IProduct, Partial<IProduct>>({
-      query: (product) => ({
-        url: 'products',
-        method: 'POST',
-        body: product,
-      }),
-      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
-    }),
-    updateProduct: builder.mutation<IProduct, { id: string; data: Partial<IProduct> }>({
-      query: ({ id, data }) => ({
-        url: `products/${id}`,
-        method: 'PUT',
-        body: data,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Product', id: 'LIST' },
-        { type: 'Product', id },
-      ],
-    }),
-    deleteProduct: builder.mutation<{ message: string }, string>({
-      query: (id) => ({
-        url: `products/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: [{ type: 'Product', id: 'LIST' }],
-    }),
-
-    // Order Management Endpoints
-    getOrders: builder.query<IOrder[], void>({
+    getOrders: builder.query<any[], void>({
       query: () => 'orders',
       providesTags: ['Order'],
     }),
-    updateOrder: builder.mutation<IOrder, { id: string; data: { isPaid?: boolean; isDelivered?: boolean } }>({
+    updateOrder: builder.mutation<any, { id: string; data: any }>({
       query: ({ id, data }) => ({
         url: `orders/${id}`,
         method: 'PUT',
@@ -201,89 +103,75 @@ export const api = createApi({
       invalidatesTags: ['Order'],
     }),
 
-    // User Management Endpoints
+    // Review Endpoints
+    getReviews: builder.query<any[], void>({
+      query: () => 'reviews',
+      providesTags: ['Review'],
+    }),
+    submitReview: builder.mutation<any, any>({
+      query: (reviewData) => ({
+        url: 'reviews',
+        method: 'POST',
+        body: reviewData,
+      }),
+      invalidatesTags: ['Review'],
+    }),
+    updateReview: builder.mutation<any, { id: string; data: any }>({
+      query: ({ id, data }) => ({
+        url: `reviews/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Review'],
+    }),
+    getFeaturedReview: builder.query<any, string>({
+      query: (productId) => `products/${productId}/featured-review`,
+      providesTags: (result, error, productId) => [{ type: 'Review', id: `featured-${productId}` }],
+    }),
+
+    // User Endpoints
     getUsers: builder.query<any[], void>({
       query: () => 'users',
       providesTags: ['User'],
     }),
-    deleteUser: builder.mutation<{ message: string }, string>({
+    deleteUser: builder.mutation<any, string>({
       query: (id) => ({
         url: `users/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['User'],
     }),
-
-    // Review Endpoints
-    getReviews: builder.query<Review[], void>({
-      query: () => `reviews?t=${Date.now()}`,
-      providesTags: ['Review'],
-    }),
-    getAdminReviews: builder.query<Review[], void>({
-      query: () => 'admin/reviews',
-      providesTags: ['Review'],
-    }),
-    submitReview: builder.mutation({
-      query: (reviewData) => ({
-        url: 'reviews',
-        method: 'POST',
-        body: reviewData,
-      }),
-      invalidatesTags: (result, error, { productId }) => [
-        { type: 'Product', id: productId },
-        'Review',
-      ],
-    }),
-    updateReview: builder.mutation<Review, { id: string; data: Partial<Review> }>({
-      query: ({ id, data }) => ({
-        url: `reviews/${id}`,
+    updateUserProfile: builder.mutation<any, any>({
+      query: (data) => ({
+        url: 'user/profile',
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [
-        'Review',
-        { type: 'Review', id: `featured-${result?.product || 'all'}` },
-      ],
-    }),
-    deleteReview: builder.mutation<{ message: string }, string>({
-      query: (id) => ({
-        url: `reviews/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Review'],
-    }),
-    getFeaturedReview: builder.query<{ review: Review | null }, string>({
-      query: (productId) => `products/${productId}/featured-review`,
-      providesTags: (result, error, productId) => [
-        { type: 'Review', id: `featured-${productId}` },
-      ],
+      invalidatesTags: ['User'],
     }),
   }),
 });
 
-// Export hooks for usage in functional components
 export const {
   useGetProductsQuery,
   useGetProductByIdQuery,
   useGetProductBySlugQuery,
-  useGetCategoriesQuery,
-  useCreateCategoryMutation,
-  useDeleteCategoryMutation,
-  useUpdateCategoryMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useGetCategoriesQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
   useCreateOrderMutation,
   useGetMyOrdersQuery,
   useGetOrderByIdQuery,
   useGetOrdersQuery,
   useUpdateOrderMutation,
+  useGetReviewsQuery,
+  useSubmitReviewMutation,
+  useUpdateReviewMutation,
+  useGetFeaturedReviewQuery,
   useGetUsersQuery,
   useDeleteUserMutation,
-  useSubmitReviewMutation,
-  useGetReviewsQuery,
-  useGetAdminReviewsQuery,
-  useUpdateReviewMutation,
-  useDeleteReviewMutation,
-  useGetFeaturedReviewQuery,
+  useUpdateUserProfileMutation,
 } = api;

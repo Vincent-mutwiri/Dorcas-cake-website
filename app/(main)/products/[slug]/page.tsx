@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Star, ArrowLeft, User } from 'lucide-react';
 import { UIProduct, toUIProduct, PriceVariant } from '@/types/product';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -281,10 +282,31 @@ export default function ProductDetailPage() {
           <Card className="overflow-hidden border-yellow-200 bg-yellow-50/50">
             <CardHeader className="pb-2">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                <div>
-                  <CardTitle className="text-lg">{featuredReview.name}</CardTitle>
-                  <div className="flex items-center mt-1">
-                    <RatingStars rating={featuredReview.rating} />
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    {featuredReview.userImageUrl && featuredReview.userImageUrl !== '/images/default-avatar.png' ? (
+                      <Image 
+                        src={featuredReview.userImageUrl} 
+                        alt={featuredReview.name} 
+                        width={40} 
+                        height={40} 
+                        className="rounded-full object-cover" 
+                        unoptimized
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center ${featuredReview.userImageUrl && featuredReview.userImageUrl !== '/images/default-avatar.png' ? 'hidden' : ''}`}>
+                      <User className="h-5 w-5 text-gray-500" />
+                    </div>
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{featuredReview.name}</CardTitle>
+                    <div className="flex items-center mt-1">
+                      <RatingStars rating={featuredReview.rating} />
+                    </div>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-yellow-600 border-yellow-300">
@@ -306,14 +328,35 @@ export default function ProductDetailPage() {
           <p className="text-gray-600">No reviews yet. Be the first to review!</p>
         ) : (
           <div className="space-y-6">
-            {reviews.map((review: { _id: string; name: string; rating: number; comment: string; createdAt: string }) => (
+            {reviews.map((review: { _id: string; name: string; rating: number; comment: string; createdAt: string; user?: { name: string; profilePicture?: string } }) => (
               <Card key={review._id} className="overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                    <div>
-                      <CardTitle className="text-lg">{review.name}</CardTitle>
-                      <div className="flex items-center mt-1">
-                        <RatingStars rating={review.rating} />
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        {review.user?.profilePicture && review.user.profilePicture !== '/images/default-avatar.png' ? (
+                          <Image 
+                            src={review.user.profilePicture} 
+                            alt={review.user?.name || review.name} 
+                            width={40} 
+                            height={40} 
+                            className="rounded-full object-cover" 
+                            unoptimized
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center ${review.user?.profilePicture && review.user.profilePicture !== '/images/default-avatar.png' ? 'hidden' : ''}`}>
+                          <User className="h-5 w-5 text-gray-500" />
+                        </div>
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{review.user?.name || review.name}</CardTitle>
+                        <div className="flex items-center mt-1">
+                          <RatingStars rating={review.rating} />
+                        </div>
                       </div>
                     </div>
                     <span className="text-sm text-gray-500">

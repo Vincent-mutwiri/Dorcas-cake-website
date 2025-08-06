@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { Star, Check, X, Award } from 'lucide-react';
+import { Star, Check, X, Award, User } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ArchivedReviewsPage() {
   const { toast } = useToast();
@@ -82,10 +83,20 @@ export default function ArchivedReviewsPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium">
-                        {(review.user?.name || review.name || 'U').charAt(0).toUpperCase()}
-                      </span>
+                    <div className="flex-shrink-0">
+                      {review.user?.profilePicture && review.user.profilePicture !== '/images/default-avatar.png' ? (
+                        <img 
+                          src={review.user.profilePicture} 
+                          alt={review.user.name || review.name} 
+                          width={40} 
+                          height={40} 
+                          className="rounded-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="h-5 w-5 text-gray-500" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <CardTitle className="text-lg">{review.user?.name || review.name}</CardTitle>

@@ -7,7 +7,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, User, LogOut, CakeSlice, UserPlus, LogIn } from 'lucide-react';
+import { ShoppingCart, User, LogOut, CakeSlice, UserPlus, LogIn, Package } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const Header = () => {
@@ -60,8 +61,28 @@ const Header = () => {
               <>
                 <Button asChild variant="ghost" className="gap-2">
                   <Link href="/orders">
-                    <User className="h-4 w-4" />
+                    <Package className="h-4 w-4" />
                     <span>Orders</span>
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" className="gap-2">
+                  <Link href="/account/profile">
+                    {session.user.imageUrl && session.user.imageUrl !== '/images/default-avatar.png' ? (
+                      <Image 
+                        src={session.user.imageUrl} 
+                        alt="Profile" 
+                        width={16} 
+                        height={16} 
+                        className="rounded-full object-cover" 
+                        unoptimized
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <User className={`h-4 w-4 ${session.user.imageUrl && session.user.imageUrl !== '/images/default-avatar.png' ? 'hidden' : ''}`} />
+                    <span>Profile</span>
                   </Link>
                 </Button>
                 <Button 

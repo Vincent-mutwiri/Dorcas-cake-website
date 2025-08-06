@@ -24,7 +24,9 @@ export async function GET(
     const reviews = await ReviewModel.find({
       product: product._id,
       status: 'approved',
-    }).sort({ isFeatured: -1, createdAt: -1 });
+    })
+    .populate('user', 'name profilePicture')
+    .sort({ isFeatured: -1, createdAt: -1 });
 
     console.log(`Found ${reviews.length} approved reviews for product ${product.name}`);
     return NextResponse.json({ product, reviews });

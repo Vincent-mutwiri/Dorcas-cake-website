@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useToast } from '@/components/ui/use-toast';
-import { ShoppingCart, Star } from 'lucide-react';
+import { ShoppingCart, Star, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface ProductCardProps {
@@ -25,6 +25,7 @@ interface FeaturedReview {
   rating: number;
   comment: string;
   isFeatured: boolean;
+  userImageUrl?: string;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
@@ -152,10 +153,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
         {featuredReview && (
           <div className="mt-4 p-3 bg-muted rounded-md">
             <div className="flex items-start gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-medium">
-                  {(featuredReview.name || 'U').charAt(0).toUpperCase()}
-                </span>
+              <div className="flex-shrink-0">
+                {featuredReview.userImageUrl && featuredReview.userImageUrl !== '/images/default-avatar.png' ? (
+                  <img 
+                    src={featuredReview.userImageUrl} 
+                    alt={featuredReview.name} 
+                    width={32} 
+                    height={32} 
+                    className="rounded-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="h-4 w-4 text-gray-500" />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">

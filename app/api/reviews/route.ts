@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
           'product.images': 1,
           'user._id': 1,
           'user.name': 1,
-          'user.email': 1
+          'user.email': 1,
+          'user.profilePicture': 1
         }
       },
       {

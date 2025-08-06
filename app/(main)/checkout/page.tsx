@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { useCreateOrderMutation } from '@/store/services/api';
+import { useCreateOrderMutation, useUpdateUserProfileMutation } from '@/store/services/api';
 import { RootState } from '@/store/store';
 import { clearCart } from '@/store/slices/cartSlice';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,9 @@ export default function CheckoutPage() {
     useSelector((state: RootState) => state.cart);
 
   const [createOrder, { isLoading, error }] = useCreateOrderMutation();
+  const [updateProfile] = useUpdateUserProfileMutation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [shippingAddress, setShippingAddress] = useState({
     name: '',
@@ -34,6 +37,22 @@ export default function CheckoutPage() {
     houseName: '',
     houseNumber: '',
   });
+
+  // Prefill address when session is available
+  useEffect(() => {
+    if (session?.user?.defaultShippingAddress) {
+      const { defaultShippingAddress } = session.user;
+      setShippingAddress({
+        name: defaultShippingAddress.name || '',
+        phoneNumber: defaultShippingAddress.phoneNumber || '',
+        streetName: defaultShippingAddress.streetName || '',
+        town: defaultShippingAddress.town || '',
+        city: defaultShippingAddress.city || '',
+        houseName: defaultShippingAddress.houseName || '',
+        houseNumber: defaultShippingAddress.houseNumber || '',
+      });
+    }
+  }, [session]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -102,37 +121,160 @@ export default function CheckoutPage() {
       <div className="grid gap-12 md:grid-cols-3">
         <div className="md:col-span-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Shipping Address</CardTitle>
+              {!isEditing ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsEditing(true)}
+                  className="gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={async () => {
+                      try {
+                        setIsSaving(true);
+                        await updateProfile({
+                          defaultShippingAddress: shippingAddress
+                        }).unwrap();
+                        toast({
+                          title: 'Success',
+                          description: 'Shipping address updated successfully.',
+                        });
+                        setIsEditing(false);
+                      } catch (error) {
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: 'Failed to update shipping address.',
+                        });
+                      } finally {
+                        setIsSaving(false);
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      // Reset to original address
+                      if (session?.user?.defaultShippingAddress) {
+                        const { defaultShippingAddress } = session.user;
+                        setShippingAddress({
+                          name: defaultShippingAddress.name || '',
+                          phoneNumber: defaultShippingAddress.phoneNumber || '',
+                          streetName: defaultShippingAddress.streetName || '',
+                          town: defaultShippingAddress.town || '',
+                          city: defaultShippingAddress.city || '',
+                          houseName: defaultShippingAddress.houseName || '',
+                          houseNumber: defaultShippingAddress.houseNumber || '',
+                        });
+                      }
+                      setIsEditing(false);
+                    }}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" value={shippingAddress.name} onChange={handleInputChange} required />
+                <Input 
+                  id="name" 
+                  name="name" 
+                  value={shippingAddress.name} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div>
                 <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input id="phoneNumber" name="phoneNumber" value={shippingAddress.phoneNumber} onChange={handleInputChange} required />
+                <Input 
+                  id="phoneNumber" 
+                  name="phoneNumber" 
+                  value={shippingAddress.phoneNumber} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div className="md:col-span-2">
                 <Label htmlFor="streetName">Street Name</Label>
-                <Input id="streetName" name="streetName" value={shippingAddress.streetName} onChange={handleInputChange} required />
+                <Input 
+                  id="streetName" 
+                  name="streetName" 
+                  value={shippingAddress.streetName} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div>
                 <Label htmlFor="town">Town</Label>
-                <Input id="town" name="town" value={shippingAddress.town} onChange={handleInputChange} required />
+                <Input 
+                  id="town" 
+                  name="town" 
+                  value={shippingAddress.town} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div>
                 <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" value={shippingAddress.city} onChange={handleInputChange} required />
+                <Input 
+                  id="city" 
+                  name="city" 
+                  value={shippingAddress.city} 
+                  onChange={handleInputChange} 
+                  required 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div>
                 <Label htmlFor="houseName">House Name/Estate (Optional)</Label>
-                <Input id="houseName" name="houseName" value={shippingAddress.houseName} onChange={handleInputChange} />
+                <Input 
+                  id="houseName" 
+                  name="houseName" 
+                  value={shippingAddress.houseName} 
+                  onChange={handleInputChange} 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
               <div>
                 <Label htmlFor="houseNumber">House Number (Optional)</Label>
-                <Input id="houseNumber" name="houseNumber" value={shippingAddress.houseNumber} onChange={handleInputChange} />
+                <Input 
+                  id="houseNumber" 
+                  name="houseNumber" 
+                  value={shippingAddress.houseNumber} 
+                  onChange={handleInputChange} 
+                  disabled={!isEditing}
+                  className={!isEditing ? 'bg-muted' : ''}
+                />
               </div>
             </CardContent>
           </Card>
