@@ -26,15 +26,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     console.log('Update data:', updateData);
     
     // Force update using direct MongoDB operation
+    const setData: any = { updatedAt: new Date() };
+    if (status !== undefined) setData.status = status;
+    if (isFeatured !== undefined) setData.isFeatured = isFeatured;
+    
     const result = await ReviewModel.collection.updateOne(
       { _id: new mongoose.Types.ObjectId(id) },
-      { 
-        $set: { 
-          status: status || 'pending',
-          isFeatured: isFeatured || false,
-          updatedAt: new Date()
-        } 
-      }
+      { $set: setData }
     );
     
     console.log('Direct update result:', result);
@@ -84,13 +82,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Return the review with status included
+    // Return the review with actual values
     const reviewObj = updatedReview.toObject();
-    return NextResponse.json({
-      ...reviewObj,
-      status: reviewObj.status || 'pending',
-      isFeatured: reviewObj.isFeatured || false
-    });
+    return NextResponse.json(reviewObj);
   } catch (error) {
     console.error('UPDATE_REVIEW_ERROR', error);
     return NextResponse.json({ message: 'Failed to update review' }, { status: 500 });

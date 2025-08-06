@@ -43,51 +43,52 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center space-x-2">
-          <Button asChild variant="ghost" size="icon" className="relative">
+          <Button asChild variant="ghost" className="relative gap-2">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
+              <span>Cart</span>
               {mounted && cartItemCount > 0 && (
                 <Badge className="absolute -right-2 -top-2 h-5 w-5 flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 p-0 text-xs">
                   {cartItemCount}
                 </Badge>
               )}
-              <span className="sr-only">Shopping Cart</span>
             </Link>
           </Button>
 
-          {session ? (
-            <>
-              <Button asChild variant="ghost" className="gap-2">
-                <Link href="/orders">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Orders</span>
-                </Link>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => signOut()}
-                className="text-destructive hover:text-destructive/90"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Sign Out</span>
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button asChild variant="ghost" size="icon">
-                <Link href="/auth/login">
-                  <LogIn className="h-5 w-5" />
-                  <span className="sr-only">Login</span>
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="icon">
-                <Link href="/auth/register">
-                  <UserPlus className="h-5 w-5" />
-                  <span className="sr-only">Register</span>
-                </Link>
-              </Button>
-            </>
+          {mounted && (
+            session ? (
+              <>
+                <Button asChild variant="ghost" className="gap-2">
+                  <Link href="/orders">
+                    <User className="h-4 w-4" />
+                    <span>Orders</span>
+                  </Link>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => signOut()}
+                  className="text-destructive hover:text-destructive/90 gap-2"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span>Sign Out</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" className="gap-2">
+                  <Link href="/auth/login">
+                    <LogIn className="h-5 w-5" />
+                    <span>Login</span>
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" className="gap-2">
+                  <Link href="/auth/register">
+                    <UserPlus className="h-5 w-5" />
+                    <span>Register</span>
+                  </Link>
+                </Button>
+              </>
+            )
           )}
         </div>
       </div>

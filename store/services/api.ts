@@ -240,7 +240,10 @@ export const api = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: ['Review'],
+      invalidatesTags: (result, error, { id }) => [
+        'Review',
+        { type: 'Review', id: `featured-${result?.product || 'all'}` },
+      ],
     }),
     deleteReview: builder.mutation<{ message: string }, string>({
       query: (id) => ({
@@ -248,6 +251,12 @@ export const api = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: ['Review'],
+    }),
+    getFeaturedReview: builder.query<{ review: Review | null }, string>({
+      query: (productId) => `products/${productId}/featured-review`,
+      providesTags: (result, error, productId) => [
+        { type: 'Review', id: `featured-${productId}` },
+      ],
     }),
   }),
 });
@@ -276,4 +285,5 @@ export const {
   useGetAdminReviewsQuery,
   useUpdateReviewMutation,
   useDeleteReviewMutation,
+  useGetFeaturedReviewQuery,
 } = api;

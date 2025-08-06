@@ -84,9 +84,9 @@ export default function AdminProductsPage() {
                 </TableCell>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>
-                  {product.priceVariants?.length > 0 ? (
+                  {product.priceVariants && product.priceVariants.length > 0 ? (
                     <div className="space-y-1">
-                      {product.priceVariants.map((variant, idx) => (
+                      {product.priceVariants.map((variant: { weight: string; price: number }, idx: number) => (
                         <div key={idx} className="text-sm">
                           {variant.weight}: KSh {variant.price.toFixed(2)}
                         </div>

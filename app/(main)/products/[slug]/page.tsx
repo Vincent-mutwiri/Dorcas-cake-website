@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/slices/cartSlice';
 import { useProductBySlug } from '@/hooks/useProductBySlug';
+import { useGetFeaturedReviewQuery } from '@/store/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,13 @@ export default function ProductDetailPage() {
     isLoading: boolean;
     error: any;
   };
+
+  // Fetch featured review separately
+  const { data: featuredReviewData } = useGetFeaturedReviewQuery(
+    data?.product?._id || '',
+    { skip: !data?.product?._id }
+  );
+  const featuredReview = featuredReviewData?.review;
 
   // Set initial weight and price when data loads
   useEffect(() => {
@@ -262,6 +270,34 @@ export default function ProductDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Featured Review Section */}
+      {featuredReview && (
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+            Featured Review
+          </h2>
+          <Card className="overflow-hidden border-yellow-200 bg-yellow-50/50">
+            <CardHeader className="pb-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <div>
+                  <CardTitle className="text-lg">{featuredReview.name}</CardTitle>
+                  <div className="flex items-center mt-1">
+                    <RatingStars rating={featuredReview.rating} />
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-yellow-600 border-yellow-300">
+                  Featured
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-700">{featuredReview.comment}</p>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Reviews Section */}
       <section className="mt-12">

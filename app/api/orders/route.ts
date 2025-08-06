@@ -88,10 +88,12 @@ export async function POST(req: NextRequest) {
     const productMap = new Map(dbProducts.map((product: IProduct & { _id: any }) => [product._id.toString(), product]));
 
     const finalOrderItems = orderItems.map((item: IOrderItem) => {
+      console.log('Processing item:', JSON.stringify(item, null, 2));
       const dbProduct = productMap.get(item.product.toString());
       if (!dbProduct) {
         throw new Error(`Product with ID ${item.product} not found.`);
       }
+      console.log('DB Product images:', dbProduct.images);
       // Check stock
       if (item.qty > dbProduct.stock) {
         throw new Error(`Not enough stock for ${dbProduct.name}.`);
@@ -106,12 +108,19 @@ export async function POST(req: NextRequest) {
         }
       }
       
-      return {
-        ...item,
+      const finalItem = {
+        name: item.name,
+        qty: item.qty,
+        image: item.image || dbProduct.images?.[0] || '/placeholder-product.jpg',
         price: itemPrice,
-        weight: item.weight || '1KG', // Ensure weight is included
+        weight: item.weight || '1KG',
+        product: item.product,
       };
+      console.log('Final item:', JSON.stringify(finalItem, null, 2));
+      return finalItem;
     });
+    
+    console.log('All final order items:', JSON.stringify(finalOrderItems, null, 2));
 
     const { itemsPrice, taxPrice, shippingPrice, totalPrice } =
       calculatePrices(finalOrderItems);

@@ -1,6 +1,6 @@
 // components/product/ProductCard.tsx
 import Link from 'next/link';
-import { UIProduct } from '@/types/product';
+import { UIProduct, PriceVariant } from '@/types/product';
 import {
   Card,
   CardContent,
@@ -33,10 +33,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const [selectedWeight, setSelectedWeight] = useState(
     product.priceVariants?.[0]?.weight || '1KG'
   );
-  const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null);
-
+  
   const selectedVariant = product.priceVariants?.find(v => v.weight === selectedWeight);
   const currentPrice = selectedVariant?.price || product.price || 0;
+  const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null);
 
   useEffect(() => {
     // Fetch featured review for this product
@@ -108,7 +108,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           {product.description || 'No description available'}
         </p>
         
-        {product.priceVariants?.length > 0 ? (
+        {product.priceVariants && product.priceVariants.length > 0 ? (
           <div className="space-y-2">
             <label className="text-sm font-medium">Weight:</label>
             <Select 
@@ -119,7 +119,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {product.priceVariants.map((variant, idx) => (
+                {product.priceVariants?.map((variant: PriceVariant, idx: number) => (
                   <SelectItem key={idx} value={variant.weight}>
                     {variant.weight} - KSh {variant.price.toFixed(2)}
                   </SelectItem>
