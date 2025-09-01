@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     const offers = await OfferModel.find({})
-      .populate('product', 'name basePrice images')
+      .populate('product', 'name basePrice images priceVariants') // Include priceVariants in the population
       .sort({ createdAt: -1 });
     
     return NextResponse.json(offers);
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       
       // Populate product data in the response
       console.log('Populating product data...');
-      const populatedOffer = await newOffer.populate('product', 'name basePrice images');
+      const populatedOffer = await newOffer.populate('product', 'name basePrice images priceVariants');
       console.log('Product data populated');
       
       return NextResponse.json(populatedOffer, { status: 201 });

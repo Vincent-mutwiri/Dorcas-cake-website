@@ -23,6 +23,7 @@ export interface IOfferBase {
   product: string | IProductBase | Types.ObjectId;
   discountedPrice: number;
   variantWeight?: string;
+  variantDisplay?: string; // For displaying the original variant string (e.g., '2Kg')
   startDate: Date | string;
   endDate: Date | string;
   isActive: boolean;
@@ -43,6 +44,7 @@ export interface IOfferInput {
   product: string | Types.ObjectId;
   discountedPrice: number;
   variantWeight?: string;
+  variantDisplay?: string; // For passing the display value to the API
   startDate: Date | string;
   endDate: Date | string;
   isActive?: boolean;

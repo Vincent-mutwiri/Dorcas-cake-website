@@ -5,7 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
 // PUT - Update a user (Admin Only)
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -15,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await dbConnect();
     const { name, email, isAdmin } = await req.json();
     const updatedUser = await UserModel.findByIdAndUpdate(
-      params.id,
+      id,
       { name, email, isAdmin },
       { new: true, runValidators: true }
     ).select('-password');
@@ -26,7 +27,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE - Delete a user (Admin Only)
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -34,7 +36,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   try {
     await dbConnect();
-    await UserModel.findByIdAndDelete(params.id);
+    await UserModel.findByIdAndDelete(id);
     return NextResponse.json({ message: 'User deleted successfully' }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to delete user' }, { status: 500 });

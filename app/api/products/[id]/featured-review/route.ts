@@ -5,11 +5,11 @@ import mongoose from 'mongoose';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    const { id } = await params;
+    const { id } = await context.params;
     
     console.log('Looking for featured review for product:', id);
     
@@ -25,7 +25,7 @@ export async function GET(
       product: id,
       status: 'approved',
       isFeatured: true
-    }).populate('user', 'name profilePicture');
+    }).populate<{ user: { name: string; profilePicture?: string } }>('user', 'name profilePicture');
     
     console.log('Featured review found:', !!featuredReview);
 

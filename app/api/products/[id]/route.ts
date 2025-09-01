@@ -6,9 +6,15 @@ import ReviewModel from '@/models/ReviewModel';
 
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const id = context.params.id;
+  const { id } = await context.params;
+  
+  // Validate ObjectId format
+  if (!id || id.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(id)) {
+    return NextResponse.json({ message: 'Invalid product ID format' }, { status: 400 });
+  }
+  
   try {
     await dbConnect();
     const product = await ProductModel.findById(id).populate(
@@ -45,9 +51,9 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 // PUT - Update a product (Admin Only)
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const id = context.params.id;
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -91,9 +97,9 @@ export async function PUT(
 // DELETE - Delete a product (Admin Only)
 export async function DELETE(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const id = context.params.id;
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

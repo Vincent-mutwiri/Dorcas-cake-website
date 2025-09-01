@@ -2,15 +2,40 @@
 'use client';
 
 import Link from 'next/link';
-import { useGetProductsQuery } from '@/store/services/api';
+import { useGetProductsQuery, useGetActiveOffersQuery } from '@/store/services/api';
 import ProductCard from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { ProductDocument } from '@/types/api';
 import { UIProduct, toUIProduct } from '@/types/product';
 
 export default function HomePage() {
-  const { data: products, isLoading, error } = useGetProductsQuery();
+  const { data: products, isLoading: isLoadingProducts, error: productsError } = useGetProductsQuery();
+  const { data: activeOffers = [], isLoading: isLoadingOffers, error: offersError } = useGetActiveOffersQuery();
+  
+  const isLoading = isLoadingProducts || isLoadingOffers;
+  const error = productsError || offersError;
 
+  // Convert products to UI format and filter out any null values
+  const uiProducts: UIProduct[] = (Array.isArray(products) ? products : [])
+    .filter((p): p is ProductDocument => p !== null && p.isFeatured)
+    .map(product => toUIProduct(product))
+    .filter((product): product is UIProduct => product !== null);
+    
+  // Helper function to safely convert and filter products
+  const getSafeProducts = (productsList: any[] = []) => {
+    return productsList
+      .filter((p): p is ProductDocument => p !== null)
+      .map(p => toUIProduct(p))
+      .filter((p): p is UIProduct => p !== null);
+  };
+  
+  // Convert active offers to UI format and filter out any null values
+  const uiActiveOffers = (Array.isArray(activeOffers) ? activeOffers : [])
+    .map(offer => ({
+      ...offer,
+      product: toUIProduct(offer.product)
+    }))
+    .filter(offer => offer.product !== null);
 
 
   return (
@@ -30,6 +55,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Today's Offers Section */}
+      {uiActiveOffers.length > 0 && (
+        <section className="py-16 bg-destructive/10">
+          <div className="container">
+            <h2 className="mb-8 text-center text-3xl font-bold text-destructive">
+              Today's Special Offers
+            </h2>
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <p className="text-center text-destructive">
+                Failed to load special offers.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {uiActiveOffers.map(({ _id, product }) => (
+                  <ProductCard
+                    key={_id}
+                    product={product}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Featured Products Section */}
       <section className="py-16">
         <div className="container">
@@ -46,9 +100,14 @@ export default function HomePage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {(products as ProductDocument[])?.filter(p => p.isFeatured).map(product => toUIProduct(product)).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
+              {getSafeProducts(products as ProductDocument[])
+                .filter(product => product.isFeatured)
+                .map((product, index) => (
+                  <ProductCard 
+                    key={product._id || `featured-${index}`} 
+                    product={product} 
+                  />
+                ))}
             </div>
           )}
         </div>
@@ -60,14 +119,17 @@ export default function HomePage() {
           <h2 className="mb-8 text-center text-3xl font-bold">
             All Our Cakes
           </h2>
-          {!products || products.length === 0 ? (
+          {!uiProducts.length ? (
             <p className="text-center text-muted-foreground">
               No cakes available at the moment.
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {(products as ProductDocument[])?.map(product => toUIProduct(product)).map((product) => (
-                <ProductCard key={product._id} product={product} />
+              {getSafeProducts(products as ProductDocument[]).map((product, index) => (
+                <ProductCard 
+                  key={product._id || `all-${index}`} 
+                  product={product} 
+                />
               ))}
             </div>
           )}

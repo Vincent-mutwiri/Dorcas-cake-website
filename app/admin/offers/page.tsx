@@ -27,12 +27,22 @@ export default function AdminOffersPage() {
   const [deleteOffer] = useDeleteOfferMutation();
   
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Type for API error response
+  interface ApiError {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+  }
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
   
   interface SelectedVariant {
     weight: string;
+    price: number;
     discountedPrice: number;
   }
 
@@ -52,21 +62,29 @@ export default function AdminOffersPage() {
     setValue('product', offer.product._id);
     setSelectedProduct(offer.product._id);
     
-    const product = offer.product as UIProduct;
-    if (offer.variantWeight) {
-      const variant = product.priceVariants?.find((v) => v.weight === offer.variantWeight);
+    // Handle variant selection during edit
+    if (offer.variantDisplay) {
+      const variant = (offer.product as UIProduct).priceVariants?.find(
+        (v) => v.weight === offer.variantDisplay
+      );
       if (variant) {
         setSelectedVariant({
           weight: variant.weight,
+          price: variant.price,
           discountedPrice: offer.discountedPrice
         });
-      } else {
-        setSelectedVariant(null);
+        setValue('variantWeight', variant.weight, { shouldValidate: true });
+        setValue('variantDisplay', offer.variantDisplay, { shouldValidate: true });
       }
-      setValue('variantWeight', offer.variantWeight, { shouldValidate: true });
     } else {
-      setSelectedVariant(null);
+      // For base price offers, we still need to set price from the product
+      setSelectedVariant({
+        weight: '',
+        price: offer.product.basePrice,
+        discountedPrice: offer.discountedPrice
+      });
       setValue('variantWeight', '', { shouldValidate: true });
+      setValue('variantDisplay', '', { shouldValidate: true });
     }
     
     setValue('discountedPrice', offer.discountedPrice, { shouldValidate: true });
@@ -77,7 +95,11 @@ export default function AdminOffersPage() {
   const handleCancel = () => {
     setEditingId(null);
     setSelectedProduct('');
-    setSelectedVariant(null);
+    setSelectedVariant({
+      weight: '',
+      price: 0,
+      discountedPrice: 0
+    });
     reset({
       product: '',
       variantWeight: '',
@@ -95,6 +117,7 @@ export default function AdminOffersPage() {
     if (selectedVariant?.weight !== variant.weight) {
       const newVariant = {
         weight: variant.weight,
+        price: variant.price,
         discountedPrice: variant.price * 0.9 // Default to 10% off
       };
       setSelectedVariant(newVariant);
@@ -104,6 +127,7 @@ export default function AdminOffersPage() {
   };
 
   const onSubmit = async (data: IOfferInput) => {
+    // Validate dates
     if (!startDate || !endDate) {
       toast({
         variant: 'destructive',
@@ -113,6 +137,30 @@ export default function AdminOffersPage() {
       return;
     }
 
+    // Ensure start date is not in the past
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    if (startDate < now) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Start date cannot be in the past.',
+      });
+      return;
+    }
+
+    // Validate end date is after start date
+    if (endDate <= startDate) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'End date must be after start date.',
+      });
+      return;
+    }
+
+    // Validate variant and price
     if (!selectedVariant) {
       toast({
         variant: 'destructive',
@@ -121,15 +169,29 @@ export default function AdminOffersPage() {
       });
       return;
     }
+    
+    // Validate discounted price
+    const originalPrice = selectedVariant?.price || 0;
+    if (selectedVariant.discountedPrice >= originalPrice) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Discounted price must be lower than the original price.',
+      });
+      return;
+    }
 
     try {
-      const offerData = {
+      setIsSubmitting(true);
+      const offerData: IOfferInput = {
         ...data,
         startDate,
         endDate,
         isActive: true,
         discountedPrice: selectedVariant.discountedPrice,
-        variantWeight: selectedVariant.weight
+        variantWeight: selectedVariant.weight,
+        variantDisplay: selectedVariant.weight, // Use the same value for display
+        product: selectedProduct
       };
 
       if (editingId) {
@@ -139,18 +201,29 @@ export default function AdminOffersPage() {
         await createOffer(offerData).unwrap();
         toast({ title: 'Success', description: 'Offer created successfully.' });
       }
-      
+
+      // Reset form
       reset();
+      setSelectedProduct('');
+      setSelectedVariant(null);
       setStartDate(undefined);
       setEndDate(undefined);
       setEditingId(null);
+      
+      // Refresh offers list
       refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Error saving offer:', error);
+      const apiError = error as ApiError;
+      const errorMessage = apiError?.data?.message || 'Failed to save offer. Please try again.';
+      
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.data?.message || 'An error occurred while saving the offer.',
+        description: errorMessage,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -161,10 +234,14 @@ export default function AdminOffersPage() {
         toast({ title: 'Success', description: 'Offer deleted successfully.' });
         refetch();
       } catch (error) {
+        console.error('Error deleting offer:', error);
+        const apiError = error as ApiError;
+        const errorMessage = apiError?.data?.message || 'Failed to delete offer. Please try again.';
+        
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Failed to delete offer.',
+          description: errorMessage,
         });
       }
     }
@@ -177,6 +254,25 @@ export default function AdminOffersPage() {
     return offer.isActive && now >= start && now <= end;
   };
 
+  const getOriginalPrice = (offer: IAdminOffer) => {
+    if (offer.variantDisplay) {
+      const variant = offer.product.priceVariants?.find(
+        (v: IPriceVariant) => v.weight === offer.variantDisplay
+      );
+      return variant ? variant.price : null;
+    }
+    return offer.product.basePrice;
+  };
+
+  const getDiscount = (offer: IAdminOffer) => {
+    const originalPrice = getOriginalPrice(offer);
+    if (originalPrice) {
+      const discount = ((originalPrice - offer.discountedPrice) / originalPrice) * 100;
+      return `${Math.round(discount)}% OFF`;
+    }
+    return 'N/A';
+  };
+
   return (
     <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
@@ -186,7 +282,7 @@ export default function AdminOffersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-card rounded-lg border p-6">
-            <h2 className="text-xl font-semibold mb-6">
+            <h2 className="text-xl font-bold mb-6">
               {editingId ? 'Edit Offer' : 'Create New Offer'}
             </h2>
             
@@ -251,7 +347,8 @@ export default function AdminOffersPage() {
                                   <Input
                                     type="number"
                                     step="0.01"
-                                    min="0"
+                                    min="0.01"
+                                    max={selectedVariant?.price ? selectedVariant.price - 0.01 : ''}
                                     value={selectedVariant?.discountedPrice ?? ''}
                                     onChange={(e) => {
                                       const value = e.target.value;
@@ -259,6 +356,7 @@ export default function AdminOffersPage() {
                                       if (value === '') {
                                         const updatedVariant = {
                                           ...selectedVariant!,
+                                          price: selectedVariant?.price || 0,
                                           discountedPrice: 0
                                         };
                                         setSelectedVariant(updatedVariant);
@@ -267,7 +365,7 @@ export default function AdminOffersPage() {
                                       }
                                       
                                       const price = parseFloat(value);
-                                      if (!isNaN(price) && price >= 0) {
+                                      if (!isNaN(price) && price > 0) {
                                         const updatedVariant = {
                                           ...selectedVariant!,
                                           discountedPrice: price
@@ -276,9 +374,21 @@ export default function AdminOffersPage() {
                                         setValue('discountedPrice', price, { shouldValidate: true });
                                       }
                                     }}
-                                    className="w-32 h-8 text-right"
+                                    className="w-32 h-8 text-right border rounded-md px-2"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="Enter price"
+                                    onBlur={(e) => {
+                                      // Ensure the price is not empty on blur
+                                      if (e.target.value === '') {
+                                        const updatedVariant = {
+                                          ...selectedVariant!,
+                                          price: selectedVariant?.price || 0,
+                                          discountedPrice: 0
+                                        };
+                                        setSelectedVariant(updatedVariant);
+                                        setValue('discountedPrice', 0, { shouldValidate: true });
+                                      }
+                                    }}
                                   />
                                 </div>
                               ) : (
@@ -342,8 +452,22 @@ export default function AdminOffersPage() {
                       <Calendar
                         mode="single"
                         selected={startDate}
-                        onSelect={(date) => setStartDate(date)}
+                        onSelect={(date) => {
+                          if (date) {
+                            // If end date is before the new start date, reset it
+                            if (endDate && date > endDate) {
+                              setEndDate(undefined);
+                            }
+                            setStartDate(date);
+                          }
+                        }}
                         initialFocus
+                        disabled={(date) => {
+                          // Disable past dates
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date < today;
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -372,11 +496,18 @@ export default function AdminOffersPage() {
                       <Calendar
                         mode="single"
                         selected={endDate}
-                        onSelect={(date) => setEndDate(date)}
+                        onSelect={(date) => date && setEndDate(date)}
                         initialFocus
-                        disabled={(date) =>
-                          startDate ? date < startDate : date < new Date()
-                        }
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          
+                          // If start date is not selected, only disable past dates
+                          if (!startDate) return date < today;
+                          
+                          // Otherwise, disable dates before start date
+                          return date <= startDate;
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -402,6 +533,39 @@ export default function AdminOffersPage() {
                   ) : (
                     'Create Offer'
                   )}
+                </Button>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    reset();
+                    setSelectedProduct('');
+                    setSelectedVariant(null);
+                    setStartDate(undefined);
+                    setEndDate(undefined);
+                    setEditingId(null);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {editingId ? 'Cancel Edit' : 'Reset Form'}
+                </Button>
+                
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {editingId ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : editingId ? 'Update Offer' : 'Create Offer'}
                 </Button>
               </div>
             </form>
@@ -435,9 +599,9 @@ export default function AdminOffersPage() {
                           {offer.product.name}
                         </TableCell>
                         <TableCell>
-                          {offer.variantWeight ? (
+                          {offer.variantDisplay ? (
                             <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-                              {offer.variantWeight}
+                              {offer.variantDisplay}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground">Base</span>
@@ -446,8 +610,8 @@ export default function AdminOffersPage() {
                         <TableCell>
                           <span className="text-muted-foreground">
                             {(() => {
-                              if (!offer.variantWeight) return `${offer.product.basePrice.toFixed(2)} KSh`;
-                              const variant = offer.product.priceVariants?.find((v: IPriceVariant) => v.weight === offer.variantWeight);
+                              if (!offer.variantDisplay) return `${offer.product.basePrice.toFixed(2)} KSh`;
+                              const variant = offer.product.priceVariants?.find((v: IPriceVariant) => v.weight === offer.variantDisplay);
                               return variant ? `${variant.price.toFixed(2)} KSh` : 'N/A';
                             })()}
                           </span>
@@ -459,17 +623,7 @@ export default function AdminOffersPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {(() => {
-                              if (offer.variantWeight) {
-                                const variant = offer.product.priceVariants?.find((v: IPriceVariant) => v.weight === offer.variantWeight);
-                                if (!variant) return 'N/A';
-                                const discount = ((variant.price - offer.discountedPrice) / variant.price) * 100;
-                                return `${Math.round(discount)}% OFF`;
-                              } else {
-                                const discount = ((offer.product.basePrice - offer.discountedPrice) / offer.product.basePrice) * 100;
-                                return `${Math.round(discount)}% OFF`;
-                              }
-                            })()}
+                            {getDiscount(offer)}
                           </Badge>
                         </TableCell>
                         <TableCell>

@@ -6,7 +6,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../auth/[...nextauth]/route';
 
 // PUT - Update a review's status (approve/reject/feature)
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -14,7 +15,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   await dbConnect();
   const { status, isFeatured } = await req.json();
-  const review = await ReviewModel.findById(params.id);
+  const review = await ReviewModel.findById(id);
 
   if (!review) {
     return NextResponse.json({ message: 'Review not found' }, { status: 404 });
@@ -39,7 +40,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE - Delete a review
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -47,7 +49,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   await dbConnect();
   try {
-    const deletedReview = await ReviewModel.findByIdAndDelete(params.id);
+    const deletedReview = await ReviewModel.findByIdAndDelete(id);
     if (!deletedReview) {
       return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }

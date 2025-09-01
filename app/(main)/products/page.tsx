@@ -39,12 +39,15 @@ export default function ProductsPage() {
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {(filteredProducts as ProductDocument[])?.map(product => toUIProduct(product)).map((product) => (
-            <ProductCard 
-              key={product._id}
-              product={product}
-            />
-          ))}
+          {(filteredProducts as ProductDocument[])
+            ?.map(product => toUIProduct(product))
+            .filter((product): product is UIProduct => product !== null)
+            .map((product) => (
+              <ProductCard 
+                key={product._id}
+                product={product}
+              />
+            ))}
         </div>
       )}
     </div>

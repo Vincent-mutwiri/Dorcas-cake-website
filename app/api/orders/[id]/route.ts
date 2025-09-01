@@ -7,8 +7,9 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json(
@@ -19,7 +20,7 @@ export async function GET(
 
   try {
     await dbConnect();
-    const order = await OrderModel.findById(params.id);
+    const order = await OrderModel.findById(id);
 
     if (!order) {
       return NextResponse.json({ message: 'Order not found.' }, { status: 404 });
@@ -49,8 +50,9 @@ export async function GET(
 // PUT - Update order to delivered (Admin Only)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -59,7 +61,7 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
-    const order = await OrderModel.findById(params.id);
+    const order = await OrderModel.findById(id);
 
     if (order) {
       if (body.isDelivered !== undefined) {

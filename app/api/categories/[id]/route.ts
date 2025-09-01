@@ -4,7 +4,8 @@ import CategoryModel from '@/models/CategoryModel';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -15,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const { name, description, image, slug } = await req.json();
     
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
-      params.id,
+      id,
       { name, description, image, slug },
       { new: true }
     );
@@ -31,7 +32,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -39,7 +41,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   try {
     await dbConnect();
-    const deletedCategory = await CategoryModel.findByIdAndDelete(params.id);
+    const deletedCategory = await CategoryModel.findByIdAndDelete(id);
 
     if (!deletedCategory) {
       return NextResponse.json({ message: 'Category not found' }, { status: 404 });

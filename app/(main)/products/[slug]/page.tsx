@@ -3,38 +3,52 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/store/slices/cartSlice';
-import { useProductBySlug } from '@/hooks/useProductBySlug';
-import { useGetFeaturedReviewQuery } from '@/store/services/api';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  useGetProductBySlugQuery,
+  useGetActiveOffersQuery,
+  useGetFeaturedReviewQuery 
+} from '@/store/services/api';
 import { useToast } from '@/components/ui/use-toast';
-import { Toaster } from '@/components/ui/toaster';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Star, ArrowLeft, User } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
+import { IAdminOffer } from '@/types/offer';
 import { UIProduct, toUIProduct, PriceVariant } from '@/types/product';
-import { format } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { ObjectId } from 'mongodb';
+import { Star, User, Tag, ArrowLeft } from 'lucide-react';
+import { format } from 'date-fns';
 
-function RatingStars({ rating }: { rating: number }) {
+function RatingStars({ rating, size = 'default' }: { rating: number; size?: 'sm' | 'default' | 'lg' }) {
+  const sizeClasses = {
+    sm: 'h-3 w-3',
+    default: 'h-4 w-4',
+    lg: 'h-5 w-5',
+  };
+
   return (
     <div className="flex items-center">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {[1, 2, 3, 4, 5].map((value) => (
         <Star
-          key={star}
-          className={cn(
-            'h-5 w-5',
-            star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-          )}
+          key={value}
+          className={`${sizeClasses[size]} ${
+            value <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          }`}
         />
       ))}
+      <span className="ml-2 text-sm text-gray-500">
+        ({rating.toFixed(1)})
+      </span>
     </div>
   );
 }
@@ -45,42 +59,122 @@ export default function ProductDetailPage() {
   const { slug } = params as { slug: string };
   const dispatch = useDispatch();
   const [qty, setQty] = useState(1);
-  const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const { toast } = useToast();
-
-  const { data, isLoading, error } = useProductBySlug(slug) as {
-    data: { product: UIProduct; reviews: any[] } | undefined;
-    isLoading: boolean;
-    error: any;
-  };
-
-  // Fetch featured review separately
+  
+  // Fetch product data and active offers
+  const { data, isLoading, error } = useGetProductBySlugQuery(slug);
+  const typedData = data as { product: any; reviews: any[] } | undefined;
+  
+  const { data: activeOffers = [], isLoading: isLoadingOffers } = useGetActiveOffersQuery();
+  const typedActiveOffers = activeOffers as IAdminOffer[];
+  const product = typedData?.product ? toUIProduct(typedData.product) : null;
+  const reviews = typedData?.reviews || [];
+  
+  // Fetch featured review
   const { data: featuredReviewData } = useGetFeaturedReviewQuery(
-    data?.product?._id || '',
-    { skip: !data?.product?._id }
+    product?._id || '',
+    { skip: !product?._id }
   );
-  const featuredReview = featuredReviewData?.review;
+  
+  // Handle case when product is not found
+  if (isLoading || isLoadingOffers) {
+    return (
+      <div className="container py-12">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!product) {
+    return (
+      <div className="container py-12">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+          <p className="text-muted-foreground mb-6">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => router.push('/')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  interface FeaturedReview {
+    _id: string;
+    rating: number;
+    comment: string;
+    user?: {
+      _id: string;
+      name: string;
+      profilePicture?: string;
+    };
+    createdAt: string;
+  }
+  
+  const featuredReview = featuredReviewData?.review as FeaturedReview | undefined;
 
-  // Set initial weight and price when data loads
+  // State for selected variant and price
+  const [selectedWeight, setSelectedWeight] = useState<string | null>(
+    product?.priceVariants?.[0]?.weight || null
+  );
+
+  // Find active offer for the selected variant
+  const activeOffer = typedActiveOffers.find((offer) => {
+    if (!product?._id) return false;
+    
+    // Convert both IDs to strings for comparison
+    const offerProductId = typeof offer.product === 'string' 
+      ? offer.product 
+      : (offer.product as any)?._id?.toString?.();
+      
+    const currentProductId = product._id?.toString?.();
+    
+    return (
+      offerProductId === currentProductId &&
+      offer.variantDisplay === selectedWeight
+    );
+  });
+
+  // Determine current price based on offer or regular price
+  const selectedVariant = product?.priceVariants?.find(
+    (v: PriceVariant) => v.weight === selectedWeight
+  ) as PriceVariant | undefined;
+
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const originalPrice = selectedVariant?.price || product?.basePrice || 0;
+
+  // Set initial weight when data loads
   useEffect(() => {
-    if (data?.product?.priceVariants?.length) {
-      const initialWeight = data.product.priceVariants[0].weight;
-      const initialPrice = data.product.priceVariants[0].price;
-      setSelectedWeight(initialWeight);
-      setCurrentPrice(initialPrice);
+    if (product?.priceVariants?.length && !selectedWeight) {
+      setSelectedWeight(product.priceVariants[0].weight);
     }
-  }, [data]);
+  }, [product, selectedWeight]);
+
+  // Update current price when offer or variant changes
+  useEffect(() => {
+    if (!product) return;
+    
+    let newPrice = 0;
+    
+    if (activeOffer) {
+      newPrice = activeOffer.discountedPrice;
+    } else if (selectedVariant?.price) {
+      newPrice = selectedVariant.price;
+    } else if (product.price) {
+      newPrice = product.price;
+    }
+    
+    setCurrentPrice(newPrice);
+  }, [activeOffer, selectedVariant, product]);
 
   const handleWeightChange = (weight: string) => {
-    const variant = data?.product?.priceVariants?.find((v: PriceVariant) => v.weight === weight);
-    if (variant) {
-      setSelectedWeight(variant.weight);
-      setCurrentPrice(variant.price);
-    }
+    setSelectedWeight(weight);
   };
 
-  if (isLoading) {
+  if (isLoadingProduct || isLoadingOffers || !product) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />
@@ -110,20 +204,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Ensure data is properly typed
-  const product = data?.product ? toUIProduct(data.product) : undefined;
-  const reviews = data?.reviews || [];
-
-  if (!product) {
-    return (
-      <div className="container py-12">
-        <p className="text-center text-destructive">Product not found</p>
-      </div>
-    );
-  }
-
   const addToCartHandler = () => {
-    if (!product || !selectedWeight || currentPrice === null) return;
+    if (!product || !selectedWeight) return;
     
     try {
       dispatch(
@@ -131,22 +213,23 @@ export default function ProductDetailPage() {
           id: product._id,
           _id: product._id,
           name: product.name,
-          slug: product.slug,
+          slug: product.slug || `product-${product._id}`,
           price: currentPrice,
           selectedWeight,
           qty,
-          stock: product.stock,
-          countInStock: product.stock,
-          images: product.images,
+          stock: product.stock || 0,
+          countInStock: product.stock || 0,
+          images: product.images || [],
+          image: product.images?.[0] || '',
           category: product.category ? {
             name: product.category.name,
             slug: 'slug' in product.category ? product.category.slug : undefined
-          } : undefined
+          } : { name: 'Uncategorized' }
         })
       );
       toast({
-        title: `KSh {product.name} added to cart`,
-        description: `You have added KSh {qty} of KSh {product.name} (KSh {selectedWeight}) to your cart.`,
+        title: `${product.name} added to cart`,
+        description: `You have added ${qty} ${qty > 1 ? 'items' : 'item'} of ${product.name} (${selectedWeight}) to your cart.`,
       });
     } catch (error) {
       toast({
@@ -171,9 +254,15 @@ export default function ProductDetailPage() {
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Product Image */}
-        <div className="bg-white rounded-lg overflow-hidden">
+        <div className="bg-white rounded-lg overflow-hidden relative">
+          {activeOffer && (
+            <Badge variant="destructive" className="absolute top-4 left-4 z-10">
+              <Tag className="h-4 w-4 mr-1" />
+              SPECIAL OFFER
+            </Badge>
+          )}
           <Image
-            src={product.images[0] || '/images/placeholder.jpg'}
+            src={product.images?.[0] || '/images/placeholder.jpg'}
             alt={product.name}
             width={600}
             height={600}
@@ -192,9 +281,20 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <p className="text-3xl font-bold text-gray-900 mb-6">
-            KSh {currentPrice ? currentPrice.toFixed(2) : (product.basePrice || product.price).toFixed(2)}
-          </p>
+          {activeOffer ? (
+            <div className="flex items-baseline gap-2 mb-6">
+              <p className="text-3xl font-bold text-destructive">
+                KSh {currentPrice?.toFixed(2)}
+              </p>
+              <s className="text-lg text-muted-foreground">
+                KSh {originalPrice.toFixed(2)}
+              </s>
+            </div>
+          ) : (
+            <p className="text-3xl font-bold text-gray-900 mb-6">
+              KSh {currentPrice?.toFixed(2)}
+            </p>
+          )}
 
           {/* Weight Selector */}
           {product.priceVariants && product.priceVariants.length > 0 && (
@@ -284,28 +384,30 @@ export default function ProductDetailPage() {
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
-                    {featuredReview.userImageUrl && featuredReview.userImageUrl !== '/images/default-avatar.png' ? (
+                    {featuredReview.user?.profilePicture && featuredReview.user.profilePicture !== '/images/default-avatar.png' ? (
                       <Image 
-                        src={featuredReview.userImageUrl} 
-                        alt={featuredReview.name} 
+                        src={featuredReview.user.profilePicture} 
+                        alt={featuredReview.user?.name || 'User'} 
                         width={40} 
                         height={40} 
                         className="rounded-full object-cover" 
                         unoptimized
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.classList.remove('hidden');
                         }}
                       />
                     ) : null}
-                    <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center ${featuredReview.userImageUrl && featuredReview.userImageUrl !== '/images/default-avatar.png' ? 'hidden' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center ${featuredReview.user?.profilePicture && featuredReview.user.profilePicture !== '/images/default-avatar.png' ? 'hidden' : ''}`}>
                       <User className="h-5 w-5 text-gray-500" />
                     </div>
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{featuredReview.name}</CardTitle>
+                    <CardTitle className="text-lg">{featuredReview.user?.name || 'Anonymous'}</CardTitle>
                     <div className="flex items-center mt-1">
-                      <RatingStars rating={featuredReview.rating} />
+                      <RatingStars rating={featuredReview.rating} size="lg" />
                     </div>
                   </div>
                 </div>
@@ -316,6 +418,9 @@ export default function ProductDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700">{featuredReview.comment}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                {format(new Date(featuredReview.createdAt), 'MMMM d, yyyy')}
+              </p>
             </CardContent>
           </Card>
         </section>
@@ -355,7 +460,7 @@ export default function ProductDetailPage() {
                       <div>
                         <CardTitle className="text-lg">{review.user?.name || review.name}</CardTitle>
                         <div className="flex items-center mt-1">
-                          <RatingStars rating={review.rating} />
+                          <RatingStars rating={review.rating} size="lg" />
                         </div>
                       </div>
                     </div>

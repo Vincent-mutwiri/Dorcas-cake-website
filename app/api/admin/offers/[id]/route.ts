@@ -17,15 +17,16 @@ async function checkAdminAccess() {
 // GET a single offer
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { error } = await checkAdminAccess();
     if (error) return NextResponse.json({ error }, { status: 401 });
 
     await dbConnect();
     
-    const offer = await OfferModel.findById(params.id).populate('product', 'name basePrice images');
+    const offer = await OfferModel.findById(id).populate('product', 'name basePrice images');
     
     if (!offer) {
       return NextResponse.json(
@@ -47,8 +48,9 @@ export async function GET(
 // UPDATE an offer
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { error } = await checkAdminAccess();
     if (error) return NextResponse.json({ error }, { status: 401 });
@@ -78,7 +80,7 @@ export async function PUT(
     }
 
     const updatedOffer = await OfferModel.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     ).populate('product', 'name basePrice images');
@@ -111,15 +113,16 @@ export async function PUT(
 // DELETE an offer
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { error } = await checkAdminAccess();
     if (error) return NextResponse.json({ error }, { status: 401 });
 
     await dbConnect();
     
-    const deletedOffer = await OfferModel.findByIdAndDelete(params.id);
+    const deletedOffer = await OfferModel.findByIdAndDelete(id);
     
     if (!deletedOffer) {
       return NextResponse.json(
